@@ -1,7 +1,10 @@
 """Gully Bhaiya: live Hinglish commentary for the cricket game, one line per event.
 
 Browser -> server
-  {"type": "event", "id", "kind", "state", "player", "detail"}
+  {"type": "event", "id", "game", "kind", "state", "player", "detail"}
+      game: which game is being played; its rules and controls are loaded from
+            cricket_rules/<game>.md and given to the commentator, so it knows
+            what each key, shot and result means.
       kind: "start" | "ball" | "hit" | "miss" | "wicket" | "over" | "end"
       state: runs, wickets, balls_left, target, bowler, pitch
       player: swings, early_ms_avg (positive = early), late_count, early_count,
@@ -23,8 +26,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
+import re
 import struct
 import time
+from pathlib import Path
 
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -40,12 +46,24 @@ MAX_EVENTS = 120  # per connection; a 2-over match is ~30
 VOICE = ("ratan_hi_sports", "hi-IN")
 PACE = 1.1
 
+RULES_DIR = Path(__file__).resolve().parent / "cricket_rules"
+
+
+def game_rules(game: str) -> str:
+    """The rules and controls of `game`, for the commentator. Unknown games get none."""
+    if not re.fullmatch(r"[a-z0-9-]{1,32}", game or ""):
+        return ""
+    path = RULES_DIR / f"{game}.md"
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
 SYSTEM = """You are "Gully Bhaiya", a loud, funny gully-cricket commentator from a Delhi or
 Mumbai lane, commentating live on one player batting in a phone game. Hinglish, energetic,
 short. React to THIS event using the score and the player's habits. Tease them when they
 miss, hype them on big hits, and give a practical tip when asked for one. Use desi cricket
 flavour (gully rules, "ek tip ek haath", the aunty's window, chai break) now and then.
-Never repeat a line you already said below.
+Never repeat a line, a joke or an opening word you already used below; vary the rhythm.
+Only describe what the event data says happened; never invent a shot, fielder or result.
 
 Write Hindi words in Devanagari and English words in Latin. Numbers as digits.
 Return JSON: {"line": "..."} with at most WORDS words.
@@ -81,23 +99,29 @@ def prompt(event: dict, said: list[str]) -> str:
 
 
 def line_ok(text: str) -> bool:
-    return bool(text.strip()) and script_share(text, "hi") >= 0.25
+    # Hinglish needs some Devanagari; all-Latin output is usually romanised Hindi,
+    # which Bulbul reads badly. The bar is low so cricket English ("cover drive") fits.
+    return bool(text.strip()) and script_share(text, "hi") >= 0.15
 
 
+# Used only when the LLM fails or writes the wrong script; several per event so
+# the fallback does not repeat (it did, and sounded robotic).
 FALLBACK = {
-    "start": "चलो भाई, match शुरू! आज तो धुलाई होगी!",
-    "ball": "Bowler दौड़ा…",
-    "hit": "क्या shot मारा है!",
-    "miss": "अरे, निकल गई बॉल!",
-    "wicket": "OUT! गया भाई गया!",
-    "over": "Bat थोड़ा देर से घुमाओ, बॉल को आने दो।",
-    "end": "Match खत्म! एक और हो जाए?",
+    "start": ["चलो भाई, match शुरू! आज तो धुलाई होगी!", "Gully stadium full है, बल्लेबाज़ तैयार!", "Target सामने है, अब दिखाओ दम!"],
+    "ball": ["Bowler दौड़ा…", "ये आई बॉल…"],
+    "hit": ["क्या shot मारा है!", "बल्ले से निकली गोली!", "Runs आ गए भाई!", "ये हुई ना बात!"],
+    "miss": ["अरे, निकल गई बॉल!", "हवा में बल्ला घुमा दिया!", "बॉल ने चकमा दे दिया!"],
+    "wicket": ["OUT! गया भाई गया!", "विकेट! Gully में सन्नाटा!", "पवेलियन का रास्ता नापो!"],
+    "over": ["Bat थोड़ा देर से घुमाओ, बॉल को आने दो।", "बॉल की line देखो, फिर मारो।"],
+    "end": ["Match खत्म! एक और हो जाए?", "बस इतना ही? फिर से खेलो!"],
 }
 
 
 class Commentary:
-    def __init__(self, ws: WebSocket, sarvam: Sarvam):
+    def __init__(self, ws: WebSocket, sarvam: Sarvam, log_path: Path | None = None):
         self.ws = ws
+        self.log_path = log_path
+        self.session = f"{random.getrandbits(32):08x}"
         self.sarvam = sarvam
         self.send_lock = asyncio.Lock()
         self.current: asyncio.Task | None = None
@@ -109,6 +133,12 @@ class Commentary:
     async def send(self, msg: dict) -> None:
         async with self.send_lock:
             await self.ws.send_text(json.dumps(msg, ensure_ascii=False))
+
+    def log(self, entry: dict) -> None:
+        if self.log_path:
+            entry = {"ts": round(time.time(), 1), "session": self.session, **entry}
+            with self.log_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     async def run(self) -> None:
         try:
@@ -141,9 +171,13 @@ class Commentary:
     async def speak(self, eid: int, event: dict) -> None:
         kind = event.get("kind", "hit")
         t0 = time.perf_counter()
+        system = SYSTEM.replace("WORDS", str(WORDS.get(kind, 12)))
+        rules = game_rules(str(event.get("game") or ""))
+        if rules:
+            system += "\nThe game being played (rules, controls, what the event fields mean):\n" + rules
         try:
             reply = await self.sarvam.chat_json(
-                SYSTEM.replace("WORDS", str(WORDS.get(kind, 12))), prompt(event, self.said), Line,
+                system, prompt(event, self.said), Line,
                 mode=MODE, max_tokens=120, temperature=0.95, reasoning=None,
             )
             text = reply.line.strip()
@@ -153,9 +187,13 @@ class Commentary:
         except BudgetExceeded:
             await self.send({"type": "error", "message": "Aaj ka quota khatam!"})
             return
-        if not line_ok(text):
-            text = FALLBACK.get(kind, FALLBACK["hit"])
+        fallback = not line_ok(text)
+        if fallback:
+            options = [t for t in FALLBACK.get(kind, FALLBACK["hit"]) if t not in self.said[-4:]]
+            text = random.choice(options or FALLBACK.get(kind, FALLBACK["hit"]))
         llm_ms = round((time.perf_counter() - t0) * 1000)
+        self.log({"event": {k: event.get(k) for k in ("game", "kind", "detail", "state", "player")},
+                  "line": text, "fallback": fallback, "llm_ms": llm_ms})
         self.said.append(text)
         await self.send({"type": "line", "id": eid, "text": text, "kind": kind})
         t1 = time.perf_counter()

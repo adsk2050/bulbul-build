@@ -109,7 +109,7 @@
       const id = nextId++;
       sent.set(id, performance.now());
       if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: "event", id, kind, detail, state: state(), player: player() }));
+        ws.send(JSON.stringify({ type: "event", id, game: "gully", kind, detail, state: state(), player: player() }));
       }
     },
     swing(timingMs, contact) {

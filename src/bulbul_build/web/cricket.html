@@ -514,6 +514,8 @@
   let wickets = 0;
   let ballsRemaining = 12;
   const BALLS = 12, MAX_WICKETS = 3;
+  const HIT_WINDOW = 62, HIT_REACH = 62; // px of ball travel / sideways reach that still counts as a hit
+  const BALL_SPEED = 0.72; // all deliveries slowed to 72% of the original
   let targetRuns = 28;
   let powerMeter = 35;
   let shotType = 'NORMAL';
@@ -623,6 +625,8 @@
       ball.vy = 4.0 + Math.random() * 1.0;
     }
 
+    ball.vx *= BALL_SPEED;
+    ball.vy *= BALL_SPEED;
     ball.active = true;
     bowler.armAnim = 10;
     swungThisBall = false;
@@ -659,10 +663,11 @@
     let alignment = Math.abs(ball.x - batsman.x);
     // Timing in ms: positive = swung before the ball arrived (early), negative = late.
     const timingMs = Math.round(((batsman.y + 10 - ball.y) / Math.max(0.1, ball.vy)) * (1000 / 60));
-    const contact = dist < 40 && alignment < 45;
+    // Wider than the original (40 / 45 px): players missed nearly everything.
+    const contact = dist < HIT_WINDOW && alignment < HIT_REACH;
     if (!swungThisBall) { swungThisBall = true; window.gv && gv.swing(timingMs, contact, alignment); }
 
-    if (dist < 40 && alignment < 45) {
+    if (contact) {
       playSound(520, 0.15, 'triangle');
       let hitRuns = 0;
       let caught = false;

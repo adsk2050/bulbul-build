@@ -39,7 +39,8 @@ OUT = settings.cache_dir / "out"
 UNCLE = settings.cache_dir.parent / "uncle"  # recorded fillers, scripts/make_fillers.py
 MAX_TALKERS_PER_IP = 2
 TALK_LOG = settings.cache_dir.parent / "talk-log.jsonl"
-UTTERANCES = settings.cache_dir.parent / "utterances"  # what STT heard, for comparing STT settings  # visitor lines and replies, for tuning
+UTTERANCES = settings.cache_dir.parent / "utterances"
+CRICKET_LOG = settings.cache_dir.parent / "cricket-log.jsonl"  # each event and the line it got  # what STT heard, for comparing STT settings  # visitor lines and replies, for tuning
 
 
 @asynccontextmanager
@@ -130,7 +131,7 @@ async def cricket_ws(ws: WebSocket):
     await ws.accept()
     _talkers[ip] = _talkers.get(ip, 0) + 1
     try:
-        await Commentary(ws, ws.app.state.sarvam).run()
+        await Commentary(ws, ws.app.state.sarvam, log_path=CRICKET_LOG).run()
     finally:
         _talkers[ip] -= 1
 
