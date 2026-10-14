@@ -1,0 +1,16 @@
+# secrets
+.env
+.env.*
+!.env.example
+# runtime data: ledger, cached audio
+data/
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# media
+*.wav
+*.mp3
+*.mp4
+*.webm

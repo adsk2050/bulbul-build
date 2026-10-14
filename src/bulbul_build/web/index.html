@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bulbul Build</title>
+<meta name="description" content="Indian voice toys built on Sarvam Bulbul V4 Flash.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Tamil:wght@400;700&family=Noto+Sans+Telugu:wght@400;700&family=Noto+Sans+Kannada:wght@400;700&family=Noto+Sans+Bengali:wght@400;700&family=Noto+Sans+Gujarati:wght@400;700&family=Noto+Sans+Gurmukhi:wght@400;700&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <a href="/" class="brand">Bulbul Build</a>
+  <span class="sub">made with Sarvam Bulbul V4 Flash</span>
+</header>
+<main>
+  <section id="picker" hidden></section>
+  <section id="mode" hidden>
+    <h1 id="mode-name"></h1>
+    <p id="mode-tagline" class="muted"></p>
+    <form id="form" autocomplete="off"></form>
+    <p id="status" role="status" class="muted"></p>
+    <div id="result" hidden>
+      <canvas id="card" width="1080" height="1920"></canvas>
+      <audio id="player" controls></audio>
+      <div class="row">
+        <button id="play-card" type="button">▶ Play card</button>
+        <button id="phone-toggle" type="button" hidden>📞 Phone line</button>
+        <button id="make-video" type="button">🎬 Save video</button>
+        <button id="share" type="button">Share</button>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="muted">Voices: Sarvam Bulbul V4 Flash. Nothing you type is stored beyond the audio file.</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

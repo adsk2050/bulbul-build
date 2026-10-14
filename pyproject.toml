@@ -1,0 +1,36 @@
+[project]
+name = "bulbul-build"
+version = "0.1.0"
+description = "Indian voice toys built on Sarvam Bulbul V4 Flash"
+readme = "README.md"
+authors = [
+    { name = "Anmol Deep", email = "adsk2050@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.143.1",
+    "httpx>=0.28.1",
+    "pydantic>=2.14.1",
+    "python-dotenv>=1.2.4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+bulbul-build = "bulbul_build.app:main"
+bulbul-budget = "bulbul_build.budget_cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.7.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "respx>=0.23.1",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
