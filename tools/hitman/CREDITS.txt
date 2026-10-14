@@ -1,0 +1,17 @@
+Hitman Cricket
+by ekcuttingchaidesign
+https://github.com/ekcuttingchaidesign/Hitman-Cricket
+Live at https://hitman-cricket.vercel.app (and hitmancricket.in)
+
+This folder is a build of that game (upstream HEAD as of 2026-10-15). All game code,
+art, sound and music are the original author's. The upstream repository has no
+licence file; it is credited here and on the page, and not relicensed.
+
+bulbul-build added only:
+- small event hooks (src/game/bulbul.ts, and a few lines in Game.ts and InputManager.ts)
+  so a live commentator can follow each ball; the game plays the same without them;
+- a script tag for /static/hitman-voice.js (Gully Bhaiya, voiced by Sarvam Bulbul);
+- the analytics tag removed, and the online boards pointed at an address that fails,
+  so the game plays offline here.
+
+The patch and the build script are in tools/hitman/ of the bulbul-build repository.

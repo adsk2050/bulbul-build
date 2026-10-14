@@ -14,6 +14,8 @@ __pycache__/
 *.mp3
 *.mp4
 *.webm
+# Hitman Cricket's own sound clips ship with the built game (tools/hitman/build.sh)
+!src/bulbul_build/web/hitman/assets/*.mp3
 
 # generated art sources (scripts/make_art.py rebuilds sprites from these)
 src/bulbul_build/web/art/raw/

@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -61,7 +61,7 @@ async def security(request: Request, call_next):
     if int(request.headers.get("content-length") or 0) > limit:
         return JSONResponse({"error": "request too large"}, status_code=413)
     resp = await call_next(request)
-    if request.url.path in ("/talk", "/cricket") or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
+    if request.url.path in ("/talk", "/cricket", "/hitman/") or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
         resp.headers["Cache-Control"] = "no-cache"  # always revalidate: a stale talk.js broke testing
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Referrer-Policy"] = "no-referrer"
@@ -76,6 +76,11 @@ async def security(request: Request, call_next):
         resp.headers["Content-Security-Policy"] = resp.headers["Content-Security-Policy"].replace(
             "script-src 'self'", "script-src 'self' 'unsafe-inline'"
         )
+    elif request.url.path.startswith("/hitman/"):
+        # Hitman Cricket bundles its own font; everything else it loads is same-origin.
+        resp.headers["Content-Security-Policy"] = resp.headers["Content-Security-Policy"].replace(
+            "font-src https://fonts.gstatic.com", "font-src 'self' https://fonts.gstatic.com"
+        )
     return resp
 
 
@@ -88,6 +93,13 @@ async def page(slug: str | None = None):
 @app.get("/cricket")
 async def cricket_page():
     return FileResponse(WEB / "cricket.html")
+
+
+@app.get("/hitman")
+async def hitman_page():
+    # The game resolves its assets (assets/, avatars/, lotties/) against the page URL,
+    # so it has to be served from a directory path.
+    return RedirectResponse("/hitman/", status_code=307)
 
 
 @app.get("/talk")
@@ -137,6 +149,8 @@ async def cricket_ws(ws: WebSocket):
 
 
 app.mount("/static", StaticFiles(directory=WEB), name="static")
+# Hitman Cricket (ekcuttingchaidesign), built by tools/hitman/build.sh, with Gully Bhaiya.
+app.mount("/hitman", StaticFiles(directory=WEB / "hitman", html=True), name="hitman")
 
 
 @app.get("/api/modes")
