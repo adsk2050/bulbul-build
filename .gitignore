@@ -20,3 +20,6 @@ src/bulbul_build/web/art/raw/
 
 # abuse word list and its tests: kept out of the public repo
 private/
+
+# agent worktrees and local Claude settings
+.claude/
