@@ -164,6 +164,7 @@ function drawCard(t) {
     lines.forEach((l, i) => ctx.fillText(l, 540, y0 + i * 78));
   }
   ctx.font = font(36, 400); ctx.globalAlpha = .8;
+  if (card.course_ref) { ctx.font = font(32, 400); wrap(ctx, card.course_ref, 900).slice(0, 2).forEach((l, i) => ctx.fillText(l, 540, 1700 + i * 40)); ctx.font = font(36, 400); }
   ctx.fillText(card.footer || "Voice: Sarvam Bulbul V4 Flash", 540, 1820);
   ctx.globalAlpha = 1;
 }

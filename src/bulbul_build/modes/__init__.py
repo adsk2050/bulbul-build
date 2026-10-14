@@ -22,6 +22,7 @@ MODULES = [
     "family_ivr",
     "cricket_commentary",
     "hinglish_test",
+    "bulbul_lab",
 ]
 
 
