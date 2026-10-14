@@ -87,7 +87,7 @@ async def test_non_template_language_falls_back_to_english(sarvam):
 async def test_tamil_uses_ads_voice(sarvam):
     respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(["வணக்கம் 10%", "இரண்டு", "அழைக்கவும் [PHONE]"]))
     s = await build(Form(**{**BASE_FORM, "language": "ta"}), sarvam)
-    assert s.lines[0].speaker == "vetri_ta_ads" and s.lines[0].language == "ta-IN"
+    assert s.lines[0].speaker == "aravind_ta_ads" and s.lines[0].language == "ta-IN"
     assert s.lines[-1].text.endswith("98765 43210")
     await sarvam.aclose()
 

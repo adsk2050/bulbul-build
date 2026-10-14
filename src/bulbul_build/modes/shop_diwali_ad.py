@@ -31,7 +31,7 @@ LANGS: dict[str, tuple[str, str]] = {
     "hi": ("hi-IN", "sunny_hi_ads"),
     "enhi": ("hi-IN", "shubh_enhi_ads"),
     "en": ("en-IN", "simran_en_ads"),
-    "ta": ("ta-IN", "vetri_ta_ads"),
+    "ta": ("ta-IN", "aravind_ta_ads"),
     "mr": ("mr-IN", "ishita_mr_conversational"),
     "bn": ("bn-IN", "roopa_bn_conversational"),
     "gu": ("gu-IN", "pooja_gu_conversational"),

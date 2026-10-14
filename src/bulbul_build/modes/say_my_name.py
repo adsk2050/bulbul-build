@@ -24,10 +24,10 @@ LANGS: dict[str, tuple[str, str, tuple[int, int] | None]] = {
     "en": ("en-IN", "simran_en_conversation", None),
     "enhi": ("hi-IN", "shubh_enhi_companion", (0x0900, 0x097F)),
     "mr": ("mr-IN", "ishita_mr_conversational", (0x0900, 0x097F)),
-    "bn": ("bn-IN", "bappa_bn_conversation", (0x0980, 0x09FF)),
+    "bn": ("bn-IN", "arnab_bn_conversation", (0x0980, 0x09FF)),
     "gu": ("gu-IN", "pooja_gu_conversational", (0x0A80, 0x0AFF)),
     "pa": ("pa-IN", "anand_pa_conversation", (0x0A00, 0x0A7F)),
-    "ta": ("ta-IN", "vetri_ta_ads", (0x0B80, 0x0BFF)),
+    "ta": ("ta-IN", "aravind_ta_ads", (0x0B80, 0x0BFF)),
     "te": ("te-IN", "kavitha_te_conversation", (0x0C00, 0x0C7F)),
     "kn": ("kn-IN", "chetan_kn_conversation", (0x0C80, 0x0CFF)),
 }

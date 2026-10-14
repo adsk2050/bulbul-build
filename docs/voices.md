@@ -15,12 +15,12 @@ Format `<name>_<lang>_<style>`. Malayalam and Odia have no v4-flash voices.
 
 **Punjabi (pa-IN)**: anand_pa_conversation, anand_pa_customer, harpreet_pa_narration, jaspal_pa_banking
 
-**Tamil (ta-IN)**: gokul_ta_narration, vetri_ta_ads, vetri_ta_suspense, vijay_ta_narration
+**Tamil (ta-IN)**: gokul_ta_narration, aravind_ta_ads, aravind_ta_suspense, vijay_ta_narration
 
 **Telugu (te-IN)**: kavitha_te_conversation, kavitha_te_narration, pooja_te_conversation, tarun_te_narration
 
 **Gujarati (gu-IN)**: bhavik_gu_conversation, pooja_gu_conversational, pooja_gu_customer
 
-**Bengali (bn-IN)**: bappa_bn_conversation, roopa_bn_conversational, bimal_bn_suspense
+**Bengali (bn-IN)**: arnab_bn_conversation, roopa_bn_conversational, bimal_bn_suspense
 
 Gender is not listed by Sarvam. Names suggest it but are unverified; check by ear before writing gendered Hindi verbs (बोल रहा/रही).
