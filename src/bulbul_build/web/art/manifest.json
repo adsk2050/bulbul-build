@@ -1,0 +1,189 @@
+{
+  "canvas": {
+    "width": 1080,
+    "height": 1920
+  },
+  "draw_order": {
+    "normal": [
+      "bg",
+      "uncle_*",
+      "bird_*"
+    ],
+    "covered": [
+      "bg",
+      "uncle_cover_*",
+      "bird_surprised (at its 'covered' rect)",
+      "hand_cover"
+    ]
+  },
+  "note": "x,y,w,h are canvas pixels; sprites may extend past the canvas edge on purpose. hand_cover is a full-size uncle layer (same rect as the uncle) holding only his left hand. In the covered state the bird ducks (squashed) so its beak sits under the fingertip. Anchors are canvas pixels.",
+  "sprites": {
+    "uncle_closed": {
+      "file": "uncle_closed.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_half": {
+      "file": "uncle_half.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_open": {
+      "file": "uncle_open.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_blink": {
+      "file": "uncle_blink.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_surprised": {
+      "file": "uncle_surprised.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_cover_closed": {
+      "file": "uncle_cover_closed.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_cover_half": {
+      "file": "uncle_cover_half.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "uncle_cover_open": {
+      "file": "uncle_cover_open.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "bird_closed": {
+      "file": "bird_closed.png",
+      "width": 1024,
+      "height": 1024,
+      "x": -115,
+      "y": 590,
+      "w": 704,
+      "h": 704
+    },
+    "bird_half": {
+      "file": "bird_half.png",
+      "width": 1024,
+      "height": 1024,
+      "x": -115,
+      "y": 590,
+      "w": 704,
+      "h": 704
+    },
+    "bird_open": {
+      "file": "bird_open.png",
+      "width": 1024,
+      "height": 1024,
+      "x": -115,
+      "y": 590,
+      "w": 704,
+      "h": 704
+    },
+    "bird_blink": {
+      "file": "bird_blink.png",
+      "width": 1024,
+      "height": 1024,
+      "x": -115,
+      "y": 590,
+      "w": 704,
+      "h": 704
+    },
+    "bird_surprised": {
+      "file": "bird_surprised.png",
+      "width": 1024,
+      "height": 1024,
+      "x": -115,
+      "y": 590,
+      "w": 704,
+      "h": 704,
+      "covered": {
+        "x": -50,
+        "y": 689,
+        "w": 774,
+        "h": 589
+      }
+    },
+    "hand_cover": {
+      "file": "hand_cover.png",
+      "width": 1024,
+      "height": 1536,
+      "x": -100,
+      "y": 0,
+      "w": 1280,
+      "h": 1920
+    },
+    "bg": {
+      "file": "bg.png",
+      "width": 1080,
+      "height": 1920,
+      "x": 0,
+      "y": 0,
+      "w": 1080,
+      "h": 1920
+    }
+  },
+  "anchors": {
+    "uncle_mouth": [
+      552,
+      569
+    ],
+    "uncle_head_pivot": [
+      550,
+      700
+    ],
+    "palm_centre": [
+      219,
+      1188
+    ],
+    "bird_beak_hinge": [
+      157,
+      800
+    ],
+    "bird_feet": [
+      218,
+      1181
+    ],
+    "finger_tip": [
+      185,
+      881
+    ]
+  }
+}
