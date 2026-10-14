@@ -21,7 +21,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, field_validator
 
 from ..sarvam import Sarvam, SarvamError
-from .base import Line, Mode, Script
+from .base import Line, Mode, Script, script_share
 
 Language = Literal["hi", "enhi", "en", "mr", "bn", "gu", "pa", "ta", "te", "kn"]
 Festival = Literal["navratri", "durga_puja", "dussehra", "dhanteras", "diwali", "chhath"]
@@ -148,6 +148,9 @@ def check(lines: list[str], f: Form) -> list[str] | None:
         return None
     text = " ".join(lines)
     if text.count(PHONE) != 1 or len(text) > 700:
+        return None
+    # Romanised Hindi sounds worse; Hinglish still needs its Hindi in Devanagari.
+    if script_share(text.replace(PHONE, ""), f.language) < (0.4 if f.language == "enhi" else 0.6):
         return None
     if not _digits(f.offer) <= _digits(text.replace(PHONE, "")):
         return None  # a price or discount was dropped or changed

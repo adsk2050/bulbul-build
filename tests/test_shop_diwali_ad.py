@@ -137,3 +137,11 @@ def test_end_to_end_through_app(tmp_path, monkeypatch):
             assert r.status_code == 200, r.text
             assert c.get(r.json()["audio_url"]).status_code == 200
             assert c.post("/api/shop-ad", json={**BASE_FORM, "phone": "123"}).status_code == 422
+
+
+def test_romanised_hinglish_is_rejected():
+    from bulbul_build.modes.base import script_share
+
+    roman = "Diwali ki dher saari shubhkamnayein sabko! Sharma Sweets mein taazi mithai."
+    mixed = "Diwali की ढेर सारी शुभकामनाएँ! Sharma Sweets में ताज़ी मिठाई।"
+    assert script_share(roman, "enhi") < 0.4 <= script_share(mixed, "enhi")
