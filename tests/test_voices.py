@@ -16,7 +16,8 @@ VOICE = re.compile(r"\b[a-z]+_(?:hi|en|enhi|mr|bn|gu|pa|ta|te|kn)_[a-z_]+[a-z]\b
 def test_all_mode_voices_exist_on_api():
     api = set((ROOT / "docs" / "voices-api.txt").read_text().split())
     bad = {}
-    for path in (ROOT / "src" / "bulbul_build" / "modes").glob("*.py"):
+    src = ROOT / "src" / "bulbul_build"
+    for path in [*(src / "modes").glob("*.py"), src / "uncle.py"]:
         unknown = {v for v in VOICE.findall(path.read_text(encoding="utf-8")) if v not in api}
         if unknown:
             bad[path.name] = sorted(unknown)

@@ -63,3 +63,30 @@ def test_security_headers(client):
     r = c.get("/")
     assert r.headers["x-frame-options"] == "DENY"
     assert "default-src 'self'" in r.headers["content-security-policy"]
+
+
+def _fake_recording(tmp_path) -> bytes:
+    """A 1 s 9:16 WebM with sound, like the browser's MediaRecorder output."""
+    import subprocess
+
+    out = tmp_path / "rec.webm"
+    subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=540x960:rate=30",
+         "-f", "lavfi", "-i", "sine=frequency=440", "-t", "1", "-c:v", "libvpx", "-c:a", "libopus", str(out)],
+        check=True,
+    )
+    return out.read_bytes()
+
+
+def test_share_clip_becomes_h264_mp4(client, tmp_path):
+    c, _ = client
+    r = c.post("/api/clip", content=_fake_recording(tmp_path), headers={"Content-Type": "video/webm"})
+    assert r.status_code == 200, r.text
+    mp4 = c.get(r.json()["url"])
+    assert mp4.status_code == 200 and mp4.headers["content-type"] == "video/mp4"
+    assert b"ftyp" in mp4.content[:16] and b"avc1" in mp4.content[:4096]
+
+
+def test_share_clip_rejects_other_types(client):
+    c, _ = client
+    assert c.post("/api/clip", content=b"x", headers={"Content-Type": "text/plain"}).status_code == 415

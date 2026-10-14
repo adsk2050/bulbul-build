@@ -1,0 +1,16 @@
+:root { --bg: #f6e7cf; --ink: #3a2414; --accent: #c8102e; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+  font-family: "Baloo 2", "Noto Sans Devanagari", system-ui, sans-serif; }
+main { position: relative; height: 100dvh; display: grid; place-items: center; overflow: hidden; }
+#stage { height: 100dvh; max-width: 100vw; aspect-ratio: 9 / 16; object-fit: contain; }
+#start-wrap { position: absolute; bottom: 7dvh; left: 0; right: 0; text-align: center; padding: 0 16px; }
+#start { font: 700 1.4rem "Baloo 2", system-ui, sans-serif; padding: 0.8em 1.6em; border: 0; border-radius: 999px;
+  background: var(--accent); color: #fff; box-shadow: 0 6px 0 #7d0a1d; cursor: pointer; }
+#start:active { transform: translateY(3px); box-shadow: 0 3px 0 #7d0a1d; }
+.hint { margin: 0.8em 0 0; font-size: 1rem; opacity: 0.8; }
+#share { position: absolute; right: 16px; bottom: 4dvh; font: 700 1.1rem "Baloo 2", system-ui, sans-serif;
+  padding: 0.6em 1.2em; border: 0; border-radius: 999px; background: #25d366; color: #073b1d;
+  box-shadow: 0 4px 0 #128c4a; cursor: pointer; }
+#share:disabled { opacity: 0.6; }
+#status { position: absolute; top: 8px; left: 0; right: 0; margin: 0; text-align: center; font-size: 0.85rem; opacity: 0.7; }

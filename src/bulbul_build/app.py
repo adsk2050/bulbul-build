@@ -9,7 +9,7 @@ import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
@@ -19,10 +19,12 @@ from .budget import BudgetExceeded, Caps, Ledger, cost_of
 from .guard import RateLimiter
 from .modes import REGISTRY, load_all
 from .sarvam import Sarvam, SarvamError
+from .talk import Session
 
 log = logging.getLogger("bulbul")
 WEB = Path(__file__).resolve().parent / "web"
 MAX_BODY = 8 * 1024
+MAX_CLIP = 15 * 1024 * 1024  # a recorded share clip
 TTS_CONCURRENCY = 4
 GAP_MS = 250
 
@@ -33,6 +35,10 @@ ledger = Ledger(
 )
 limiter = RateLimiter(settings.per_ip_per_min, trust_proxy=os.environ.get("TRUST_PROXY") == "1")
 OUT = settings.cache_dir / "out"
+UNCLE = settings.cache_dir.parent / "uncle"  # recorded fillers, scripts/make_fillers.py
+MAX_TALKERS_PER_IP = 2
+TALK_LOG = settings.cache_dir.parent / "talk-log.jsonl"
+UTTERANCES = settings.cache_dir.parent / "utterances"  # what STT heard, for comparing STT settings  # visitor lines and replies, for tuning
 
 
 @asynccontextmanager
@@ -49,9 +55,12 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 
 @app.middleware("http")
 async def security(request: Request, call_next):
-    if int(request.headers.get("content-length") or 0) > MAX_BODY:
+    limit = MAX_CLIP if request.url.path == "/api/clip" else MAX_BODY
+    if int(request.headers.get("content-length") or 0) > limit:
         return JSONResponse({"error": "request too large"}, status_code=413)
     resp = await call_next(request)
+    if request.url.path == "/talk" or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
+        resp.headers["Cache-Control"] = "no-cache"  # always revalidate: a stale talk.js broke testing
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["X-Frame-Options"] = "DENY"
@@ -67,6 +76,38 @@ async def security(request: Request, call_next):
 @app.get("/m/{slug}")
 async def page(slug: str | None = None):
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/talk")
+async def talk_page():
+    return FileResponse(WEB / "talk.html")
+
+
+@app.get("/uncle/{name}")
+async def uncle_clip(name: str):
+    if not (name.endswith(".wav") and name[:-4].replace("-", "").isalnum()):
+        raise HTTPException(404)
+    path = UNCLE / name
+    if not path.exists():
+        raise HTTPException(404)
+    return FileResponse(path, media_type="audio/wav", headers={"Cache-Control": "public, max-age=86400"})
+
+
+_talkers: dict[str, int] = {}
+
+
+@app.websocket("/ws/talk")
+async def talk_ws(ws: WebSocket):
+    ip = limiter.client_ip(ws)
+    if _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
+        await ws.close(code=1013)
+        return
+    await ws.accept()
+    _talkers[ip] = _talkers.get(ip, 0) + 1
+    try:
+        await Session(ws, ws.app.state.sarvam, UNCLE, log_path=TALK_LOG, utterance_dir=UTTERANCES).run()
+    finally:
+        _talkers[ip] -= 1
 
 
 app.mount("/static", StaticFiles(directory=WEB), name="static")
@@ -90,6 +131,38 @@ async def budget(request: Request):
         "caps": vars(ledger.caps),
         "rows": ledger.report(),
     }
+
+
+@app.post("/api/clip")
+async def make_clip(request: Request):
+    """Turn the browser's recording of one exchange into a shareable MP4."""
+    if not limiter.allow(limiter.client_ip(request)):
+        raise HTTPException(429, "Thoda ruko! Too many requests, try again in a minute.")
+    kind = request.headers.get("content-type", "")
+    suffix = ".mp4" if "mp4" in kind else ".webm" if "webm" in kind else None
+    if suffix is None:
+        raise HTTPException(415, "send video/webm or video/mp4")
+    body = await request.body()
+    if not body or len(body) > MAX_CLIP:
+        raise HTTPException(413, "clip too large")
+    try:
+        mp4 = await asyncio.to_thread(audio.share_mp4, body, suffix)
+    except Exception as e:  # ffmpeg failed on a bad upload
+        log.warning("clip conversion failed: %s", e)
+        raise HTTPException(422, "Could not make the video.") from e
+    token = secrets.token_hex(12)
+    (OUT / f"{token}.mp4").write_bytes(mp4)
+    return {"url": f"/clip/{token}.mp4"}
+
+
+@app.get("/clip/{name}")
+async def clip_file(name: str):
+    if not (name.endswith(".mp4") and name[:-4].isalnum()):
+        raise HTTPException(404)
+    path = OUT / name
+    if not path.exists():
+        raise HTTPException(404)
+    return FileResponse(path, media_type="video/mp4", filename="talking-bulbul.mp4")
 
 
 @app.get("/audio/{name}")
