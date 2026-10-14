@@ -151,7 +151,7 @@ async def test_unusable_llm_output_uses_templates(sarvam, content):
     s = await dr.build(dr.Form(**GOOD), sarvam)
     heads = s.lines[1:-1]
     assert [ln.speaker for ln in heads] == [dr.HEADS[0][2], dr.HEADS[1][2], dr.HEADS[2][2], dr.HINGLISH[2]]
-    assert all(h in ln.text for h, ln in zip(HABITS, heads))
+    assert all(h.replace("'", "").lower() in ln.text.lower() for h, ln in zip(HABITS, heads))
     assert "Rahul" in heads[1].text and heads[1].language == "en-IN"
     await sarvam.aclose()
 
@@ -187,3 +187,41 @@ def test_end_to_end(tmp_path, monkeypatch):
             assert data["captions"][2]["text"].startswith("Head 2 · English:")
             assert tts.call_count == 6
             assert c.post("/api/dashanan-roast", json={**GOOD, "habits": ["one", "two"]}).status_code == 422
+
+
+def test_marathi_head_rejects_hindi():
+    mr = dr.HEADS[3]
+    assert not dr.line_ok("राहुल, चाय के पैसे न देना तुम्हारी पुरानी कला है…", mr, "Rahul")  # live output, Hindi
+    assert not dr.line_ok("Rahul, तुम हमेशा देर से आते हो!", mr, "Rahul")
+    assert dr.line_ok("Rahul, तू नेहमी उशिरा येतोस!", mr, "Rahul")
+    assert dr.line_ok("राहुल, तुझी चहाची उधारी कधी फेडणार?", mr, "Rahul")
+    assert dr.line_ok(GOOD_LINES[3], mr, "Rahul")
+    # the same Hindi line is fine for the Hindi head, and Hinglish is not held to Marathi rules
+    assert dr.line_ok("राहुल, चाय के पैसे न देना तुम्हारी पुरानी कला है…", dr.HEADS[0], "Rahul")
+    assert "Marathi is not Hindi" in dr.SYSTEM
+
+
+def test_hindi_head_accepts_devanagari_name():
+    assert dr.line_ok("राहुल! तीन दिन बाद जवाब? यह आदत अब जलेगी!", dr.HEADS[0], "Rahul")
+
+
+@pytest.mark.parametrize("i", [0, 1, 2])
+def test_english_template_quotes_habit_cleanly(i):
+    t = dr.template("en", i, "Rahul", "always '5 min mein aaya'")
+    assert '"' in t and "'5" not in t and "aaya'" not in t
+    assert "5 min mein aaya" in t and "Rahul" in t
+    if i in (0, 1):
+        assert '"Always 5 min mein aaya"' in t  # capitalised where it starts a quote
+    assert "friend's" in dr.template("en", 0, "Rahul", "eats his friend's fries")
+
+
+@respx.mock
+async def test_marathi_head_in_hindi_falls_back_to_hinglish(sarvam):
+    lines = list(GOOD_LINES[:4])
+    lines[3] = "राहुल, चाय के पैसे न देना तुम्हारी पुरानी कला है…"
+    respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(lines))
+    s = await dr.build(dr.Form(**GOOD), sarvam)
+    head4 = s.lines[4]
+    assert head4.speaker == dr.HINGLISH[2] and head4.caption.startswith("Head 4 · Hinglish:")
+    assert s.lines[1].text == GOOD_LINES[0]
+    await sarvam.aclose()
