@@ -87,3 +87,20 @@ Add a test in `tests/` with Sarvam mocked.
 |---|---|
 | 8570 | app (API and page) |
 | 8571–8579 | free |
+
+## Talking Bulbul (`/talk`, the challenge entry)
+
+Mitthu the bulbul parrots the visitor (their own recording, pitched up, in the
+browser, free); Sharma uncle ("Chacha") answers or cuts in with live Bulbul.
+`talk.py` is the per-visitor WebSocket session, `uncle.py` the rules, persona
+and fillers, `web/talk.js` the mic, VAD, playback, sprites and share clip.
+
+- The abuse word list is **not in git**: `private/abuse.txt` (gitignored; one
+  term per line, `re:` for regexes; `ABUSE_FILE` overrides). Without it the
+  abuse rule is off. Its real test cases: `uv run pytest private/`. Never
+  commit curse words, in code, tests or commit messages.
+- Fillers are recorded once: `uv run python scripts/make_fillers.py` (paid).
+- Turns, transcripts and timings go to `data/talk-log.jsonl`;
+  `uv run python scripts/talk_timings.py` prints them. What STT heard is in
+  `data/utterances/`.
+- Art: `scripts/make_art.py` (OpenAI images, paid; `build` step is free).

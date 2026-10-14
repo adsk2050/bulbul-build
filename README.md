@@ -5,6 +5,7 @@ text-to-speech, plus Sarvam's LLM where a script needs writing or translating.
 
 | Toy | What it does |
 |---|---|
+| **Talking Bulbul 🐦** (`/talk`) | Mitthu the bulbul repeats everything you say. Sharma uncle answers, cuts in and covers Mitthu's beak, live on Bulbul V4 Flash. Share any exchange as a video. |
 | **Udhaar Wapas 💸** | A very polite "recovery desk" voice note for the friend who still owes you money, in 10 Indian languages, with a phone-line version. |
 
 More toys land one by one.
