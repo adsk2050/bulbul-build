@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 from pathlib import Path
 from typing import TypeVar
 
@@ -19,10 +20,14 @@ from .budget import Ledger, cost_of, llm_cost
 
 BASE = "https://api.sarvam.ai"
 TTS_MODEL = "bulbul:v4-flash"
-LLM_MODEL = "sarvam-105b"
+# sarvam-105b spends its whole budget on hidden reasoning and returns no content
+# for these short jobs (probed 2026-10-14: 899 of 900 tokens were reasoning).
+# The conversations variant answers directly.
+LLM_MODEL = "sarvam-105b-conversations"
 TTS_MAX_CHARS = 2500
 
 T = TypeVar("T", bound=BaseModel)
+log = logging.getLogger(__name__)
 
 
 class SarvamError(RuntimeError):
@@ -134,11 +139,19 @@ class Sarvam:
             self.ledger.settle(call_id, self._reserved(call_id), est_in + max_tokens, "ok", "no usage; kept estimate")
         else:
             self.ledger.settle(call_id, llm_cost(t_in, t_out), t_in + t_out, "ok")
-        content = data["choices"][0]["message"].get("content") or ""
+        choice = data["choices"][0]
+        content = choice["message"].get("content") or ""
         content = content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        start, end = content.find("{"), content.rfind("}")
+        if start != -1 and end > start:
+            content = content[start : end + 1]
         try:
             return schema.model_validate_json(content)
         except ValueError as e:
+            log.warning(
+                "LLM output did not match %s (finish_reason=%s, %d chars): %r",
+                schema.__name__, choice.get("finish_reason"), len(content), content[:300],
+            )
             raise SarvamError(f"LLM output did not match {schema.__name__}") from e
 
     # ---- translate --------------------------------------------------------
