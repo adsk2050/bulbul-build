@@ -44,3 +44,16 @@ Session: 2808c301-26c1-4e09-b8e7-28259bbe29a2
 3. User to try /talk in Chrome; tune VAD, barge timing, uncle frequency.
 4. Character art (OpenAI images, check price) to replace the canvas placeholder.
 5. Share video (canvas + audio -> MP4), hosting, entry video.
+
+## 2026-10-15 ~00:35 — pivot: TTS-only or LLM+TTS (no STT)
+User verdict: Talking Bulbul (STT loop) "is not gonna work". New brief: find
+viral use cases with **no STT**, ideally TTS only, else LLM + TTS. Must not be
+a form nobody fills in; outputs people post (WhatsApp status / Reels, ideally
+video); should show off Bulbul V4 Flash (speed, Indian languages, Hinglish,
+numbers). Deadline 2026-10-15 20:00 IST.
+Research batch (output docs/research/tts-only/):
+| Agent | File | Status |
+|---|---|---|
+| research-viral-tts | viral-tts-cases.md | running |
+| research-formats | no-stt-formats.md | running |
+| research-india-creators | india-creators.md | running |
