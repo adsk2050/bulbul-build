@@ -54,6 +54,9 @@ numbers). Deadline 2026-10-15 20:00 IST.
 Research batch (output docs/research/tts-only/):
 | Agent | File | Status |
 |---|---|---|
-| research-viral-tts | viral-tts-cases.md | running |
-| research-formats | no-stt-formats.md | running |
-| research-india-creators | india-creators.md | running |
+| research-viral-tts | viral-tts-cases.md | done |
+| research-formats | no-stt-formats.md | done |
+| research-india-creators | india-creators.md | done |
+All three converge on one pick: **Dukaan Status / Diwali ad video** (one line
+of text -> instant Bulbul voice -> 9:16 MP4 for WhatsApp Status). Awaiting
+the user's go-ahead.
