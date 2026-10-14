@@ -62,7 +62,7 @@ async def test_scripts_follow_language_rules(script):
 
 async def test_lesson_specifics():
     pace = await build(Form(lesson="pace"), None)
-    assert [ln.pace for ln in pace.lines[1:]] == [0.8, 1.0, 1.25]
+    assert [ln.pace for ln in pace.lines[1:]] == [0.5, 1.0, 2.0]
     phone = await build(Form(lesson="phone"), None)
     assert phone.phone_line
     styles = await build(Form(lesson="styles"), None)

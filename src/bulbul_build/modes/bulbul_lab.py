@@ -27,7 +27,7 @@ NARRATOR = ("en-IN", "shubh_en_narration")
 NARRATOR_ENHI = ("hi-IN", "ishita_enhi_companion")
 
 LessonKey = Literal[
-    "numbers", "script", "codemix", "punctuation", "pace", "styles", "languages", "phone", "limits",
+    "numbers", "script", "codemix", "punctuation", "pace", "styles", "languages", "phone", "limits", "heteronyms",
 ]
 
 
@@ -56,19 +56,15 @@ class Lesson:
 
 LESSONS: dict[str, Lesson] = {
     "numbers": Lesson(
-        title="Numbers, dates and acronyms",
-        intro=(
-            "Lesson one: text normalisation. Before I can speak, I must decide how to say what is written. "
-            "Rupees, dates, times, a PNR, a phone number, and acronyms: some are read as words, some letter by letter. "
-            "Listen."
-        ),
+        title="Same digits, four readings",
+        intro="Text normalisation. Before I speak, I rewrite symbols as words. Numbers are the hardest: the same four digits can be a phone number, a year, a price or a time. Only the words around them tell me which. Listen.",
         clips=(
-            Clip("Money", "Your loan of ₹5,00,000 is approved.", "en-IN", "simran_en_customer"),
-            Clip("Date and time", "Your train leaves on 12/10/2026 at 9:47 am.", "en-IN", "simran_en_customer"),
-            Clip("PNR and phone", "PNR 4521876390. For help, call 98765 43210.", "en-IN", "simran_en_customer"),
-            Clip("Acronyms", "ISRO launched it, but the EMI is still due.", "en-IN", "simran_en_customer"),
+            Clip("Phone", "Call 1800 now.", "en-IN", "simran_en_customer"),
+            Clip("Year", "He was born in 1800.", "en-IN", "simran_en_customer"),
+            Clip("Price", "Pay ₹1800 today.", "en-IN", "simran_en_customer"),
+            Clip("Time", "The train leaves at 18:00.", "en-IN", "simran_en_customer"),
         ),
-        outro="ISRO is a word. EMI is three letters. Nobody wrote that down for me; context decided.",
+        outro="Same digits, four readings. Context decides, and a reader trained on other rules gets it wrong.",
         course_ref="CS224S Lecture 3, slides 35 and 39–40: text normalisation of non-standard words",
     ),
     "script": Lesson(
@@ -103,16 +99,13 @@ LESSONS: dict[str, Lesson] = {
         course_ref="CS224S Lecture 3, slides 23 and 45: the front end chooses the phones, and G2P depends on the language",
     ),
     "punctuation": Lesson(
-        title="Punctuation is my prosody control",
-        intro=(
-            "Lesson four: prosody. I have no SSML and no pause tags. Punctuation is how you steer my pauses "
-            "and my pitch. Same words, four marks: comma, full stop, exclamation, and ellipsis."
-        ),
+        title="Move a comma, change the meaning",
+        intro="Pauses and melody. I do not have pause tags. Punctuation is how you steer my pauses and my pitch. Move one comma and the meaning flips. Change a full stop to a question mark and the end of the sentence should rise.",
         clips=(
-            Clip("Comma", "Okay, I am coming, give me five minutes.", "en-IN", "simran_en_narration"),
-            Clip("Full stop", "Okay. I am coming. Give me five minutes.", "en-IN", "simran_en_narration"),
-            Clip("Exclamation", "Okay! I am coming! Give me five minutes!", "en-IN", "simran_en_narration"),
-            Clip("Ellipsis", "Okay… I am coming… give me five minutes…", "en-IN", "simran_en_narration"),
+            Clip("Stop, don't go", "रुको, मत जाओ।", "hi-IN", "simran_hi_conversation"),
+            Clip("Don't stop, go", "रुको मत, जाओ।", "hi-IN", "simran_hi_conversation"),
+            Clip("Statement", "आप कल आ रहे हैं।", "hi-IN", "simran_hi_conversation"),
+            Clip("Question", "आप कल आ रहे हैं?", "hi-IN", "simran_hi_conversation"),
         ),
         outro="Prosody belongs to the phrase. Move the boundary and the melody moves with it.",
         course_ref="CS224S Lecture 2, slide 49: prosodic boundaries; Lecture 3, slide 9: what prosody TTS must specify",
@@ -125,25 +118,20 @@ LESSONS: dict[str, Lesson] = {
             "Slow for teaching, normal for talking, fast for announcements."
         ),
         clips=(
-            Clip("Pace 0.8", "अगला स्टेशन नई दिल्ली है। कृपया अपना सामान साथ रखें।", "hi-IN", "simran_hi_narration", 0.8),
+            Clip("Pace 0.5", "अगला स्टेशन नई दिल्ली है। कृपया अपना सामान साथ रखें।", "hi-IN", "simran_hi_narration", 0.5),
             Clip("Pace 1.0", "अगला स्टेशन नई दिल्ली है। कृपया अपना सामान साथ रखें।", "hi-IN", "simran_hi_narration", 1.0),
-            Clip("Pace 1.25", "अगला स्टेशन नई दिल्ली है। कृपया अपना सामान साथ रखें।", "hi-IN", "simran_hi_narration",
-                 1.25),
+            Clip("Pace 2.0", "अगला स्टेशन नई दिल्ली है। कृपया अपना सामान साथ रखें।", "hi-IN", "simran_hi_narration", 2.0),
         ),
         course_ref="CS224S Lecture 5, slides 105–106: FastSpeech's length regulator and duration predictor",
     ),
     "styles": Lesson(
         title="One speaker, four styles",
-        intro=(
-            "Lesson six: voice and style. My voice IDs read name, language, style. "
-            "Here is one speaker, Simran, in four styles: recovery desk, news, late night radio, "
-            "and excited social. The words stay the same. The delivery changes."
-        ),
+        intro="Speaker and style. A voice has two parts: who is speaking, and how. One speaker, Ratan, in four styles: sports, late-night radio, devotional and documentary. The words stay the same. Only the delivery changes.",
         clips=(
-            Clip("Recovery", "आज रात आठ बजे, शहर में बारिश की संभावना है।", "hi-IN", "simran_hi_recovery"),
-            Clip("News", "आज रात आठ बजे, शहर में बारिश की संभावना है।", "hi-IN", "simran_hi_news"),
-            Clip("Late night", "आज रात आठ बजे, शहर में बारिश की संभावना है।", "hi-IN", "simran_hi_latenight"),
-            Clip("Social, excited", "आज रात आठ बजे, शहर में बारिश की संभावना है।", "hi-IN", "simran_hi_social_excited"),
+            Clip("Sports", "आज रात आठ बजे भारत का मैच है, देर मत करना!", "hi-IN", "ratan_hi_sports"),
+            Clip("Late night", "आज रात आठ बजे भारत का मैच है, देर मत करना!", "hi-IN", "ratan_hi_latenight"),
+            Clip("Devotional", "आज रात आठ बजे भारत का मैच है, देर मत करना!", "hi-IN", "ratan_hi_devotional"),
+            Clip("Documentary", "आज रात आठ बजे भारत का मैच है, देर मत करना!", "hi-IN", "ratan_hi_documentary"),
         ),
         course_ref="CS224S Lecture 5, slides 59 and 96: speaker embeddings and Global Style Tokens",
     ),
@@ -189,17 +177,25 @@ LESSONS: dict[str, Lesson] = {
     ),
     "limits": Lesson(
         title="What I cannot do (yet)",
-        intro=(
-            "Lesson nine: honest limits. I am Bulbul V4 Flash, the fast model. I have no laughter, "
-            "whisper or emotion tags; those are promised for V4 Pro, which is not out. I do not sing. "
-            "I cannot clone your voice. I have no SSML. Malayalam and Odia have no V4 voices yet. "
-            "Here is what happens when you type a laugh."
-        ),
+        intro="Now, my limits. Laughs, sighs and whispers are not words. A model needs a separate way to make them: a tag or an instruction. I am Bulbul V4 Flash, and I have neither. Listen to what happens when you type them.",
         clips=(
             Clip("Typed laughter", "Haha! That was so funny.", "en-IN", "simran_en_conversation"),
+            Clip("Stage direction", "(whispers) Come closer, I have a secret.", "en-IN", "simran_en_conversation"),
+            Clip("Tag", "[sighs] I am so tired today.", "en-IN", "simran_en_conversation"),
         ),
-        outro="I read the laugh as a word. Emotion in speech is still the open problem.",
-        course_ref="CS224S Lecture 1, slide 38: modern TTS is 'not yet fully emotive'; voice cloning",
+        outro="Expression comes from choosing a voice, not from the text. Emotion in speech is still an open problem.",
+        course_ref="CS224S Lecture 1, slide 38: modern TTS is 'not yet fully emotive'",
+    ),
+    "heteronyms": Lesson(
+        title="Same spelling, two sounds",
+        intro="Same spelling, two sounds. The word read can sound like reed, or like red. Record can be a noun or a verb. Spelling alone cannot decide; I have to work out the grammar of the whole sentence. Each clip says one spelling two ways.",
+        clips=(
+            Clip("read", "I read it yesterday, and I will read it again tomorrow.", "en-IN", "simran_en_conversation", 0.85),
+            Clip("record", "Please record the record before the shop closes.", "en-IN", "simran_en_conversation", 0.85),
+            Clip("wind", "The wind was so strong that I had to wind the window shut.", "en-IN", "simran_en_conversation", 0.85),
+        ),
+        outro="Hindi in Devanagari almost never has this problem. English has hundreds of these words.",
+        course_ref="CS224S Lecture 3, slide 41: homograph disambiguation",
     ),
 }
 
