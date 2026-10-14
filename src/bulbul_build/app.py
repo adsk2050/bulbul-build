@@ -19,6 +19,7 @@ from .budget import BudgetExceeded, Caps, Ledger, cost_of
 from .guard import RateLimiter
 from .modes import REGISTRY, load_all
 from .sarvam import Sarvam, SarvamError
+from .commentary import Commentary
 from .talk import Session
 
 log = logging.getLogger("bulbul")
@@ -59,7 +60,7 @@ async def security(request: Request, call_next):
     if int(request.headers.get("content-length") or 0) > limit:
         return JSONResponse({"error": "request too large"}, status_code=413)
     resp = await call_next(request)
-    if request.url.path == "/talk" or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
+    if request.url.path in ("/talk", "/cricket") or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
         resp.headers["Cache-Control"] = "no-cache"  # always revalidate: a stale talk.js broke testing
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Referrer-Policy"] = "no-referrer"
@@ -69,6 +70,11 @@ async def security(request: Request, call_next):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src https://fonts.gstatic.com; script-src 'self'"
     )
+    if request.url.path == "/cricket":
+        # The adapted game keeps its inline script and onclick handlers.
+        resp.headers["Content-Security-Policy"] = resp.headers["Content-Security-Policy"].replace(
+            "script-src 'self'", "script-src 'self' 'unsafe-inline'"
+        )
     return resp
 
 
@@ -76,6 +82,11 @@ async def security(request: Request, call_next):
 @app.get("/m/{slug}")
 async def page(slug: str | None = None):
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/cricket")
+async def cricket_page():
+    return FileResponse(WEB / "cricket.html")
 
 
 @app.get("/talk")
@@ -106,6 +117,20 @@ async def talk_ws(ws: WebSocket):
     _talkers[ip] = _talkers.get(ip, 0) + 1
     try:
         await Session(ws, ws.app.state.sarvam, UNCLE, log_path=TALK_LOG, utterance_dir=UTTERANCES).run()
+    finally:
+        _talkers[ip] -= 1
+
+
+@app.websocket("/ws/cricket")
+async def cricket_ws(ws: WebSocket):
+    ip = limiter.client_ip(ws)
+    if _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
+        await ws.close(code=1013)
+        return
+    await ws.accept()
+    _talkers[ip] = _talkers.get(ip, 0) + 1
+    try:
+        await Commentary(ws, ws.app.state.sarvam).run()
     finally:
         _talkers[ip] -= 1
 
