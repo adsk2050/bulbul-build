@@ -25,9 +25,9 @@ def chat(content: str) -> httpx.Response:
     })
 
 
-def marathi(n: int = 6, number: str = "1 2 9 5 1") -> str:
-    lines = [f"{i+1}. प्रवाशांनी कृपया लक्ष द्यावे {i}" for i in range(n)]
-    lines[1] = f"2. गाडी क्रमांक {number}, Rahul Express, Bed पासून Office पर्यंत, उशिरा धावत आहे."
+def marathi(n: int = 2, number: str = "1 2 9 5 1", name: str = "Rahul") -> str:
+    lines = [f"1. गाडी क्रमांक {number}, {name} Express, bed पासून OFFICE पर्यंत, उशिरा धावत आहे."]
+    lines += [f"{i+1}. प्रवाशांनी कृपया लक्ष द्यावे {i}" for i in range(1, n)]
     return json.dumps({"lines": lines}, ensure_ascii=False)
 
 
@@ -68,24 +68,31 @@ def test_form_rejects_bad_input(bad):
 @respx.mock
 async def test_three_languages(sarvam, monkeypatch):
     monkeypatch.setattr(ra.random, "randrange", lambda n: 0)
-    route = respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(marathi()))
+    route = respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(marathi(name="rahul")))
     s = await ra.build(ra.Form(**GOOD), sarvam)
-    assert [ln.language for ln in s.lines] == ["hi-IN"] * 6 + ["en-IN"] * 6 + ["mr-IN"] * 6
-    assert s.lines[1].text.startswith("गाड़ी संख्या एक दो नौ पाँच एक")
-    assert s.lines[1].caption.startswith("गाड़ी संख्या 12951")
-    assert "one two nine five one" in s.lines[7].text and "3 hours 20 minutes" in s.lines[7].text
-    assert "Garba night" in s.lines[8].text
-    assert s.lines[13].text.startswith("गाडी क्रमांक")  # numbering stripped
+    assert [ln.language for ln in s.lines] == ["hi-IN"] * 3 + ["en-IN"] * 2 + ["mr-IN"] * 2
+    hi, en, mr = s.lines[1], s.lines[3], s.lines[5]
+    assert hi.text.startswith("गाड़ी संख्या एक दो नौ पाँच एक") and "प्लेटफ़ॉर्म 4" in hi.text
+    assert hi.caption.startswith("गाड़ी संख्या 12951") and "Garba night के लिए" in hi.text
+    assert "one two nine five one" in en.text and "3 hours 20 minutes late for Garba night" in en.text
+    # numbering stripped, and names put back exactly as typed
+    assert mr.text.startswith("गाडी क्रमांक") and "Rahul Express, Bed पासून Office" in mr.text
     assert s.phone_line is False and "DOST RAILWAYS" in s.card["kicker"]
     assert "Rahul" in s.title and "Rahul" in s.share_text
     sent = json.loads(route.calls[0].request.content)
     assert "Marathi" in sent["messages"][1]["content"] and "1 2 9 5 1" in sent["messages"][1]["content"]
+    # short enough for a ~30 s clip
+    assert sum(len(ln.text) for ln in s.lines) < 600
     await sarvam.aclose()
+
+
+def test_restore_names():
+    assert ra.restore_names("rahul से bed तक", ["Rahul", "Bed", "Office"]) == "Rahul से Bed तक"
 
 
 @pytest.mark.parametrize("content", [
     "not json",
-    marathi(n=4),  # wrong line count
+    marathi(n=3),  # wrong line count
     marathi(number="12951"),  # train number not kept digit by digit
 ])
 @respx.mock
@@ -93,15 +100,15 @@ async def test_bad_llm_output_drops_regional(sarvam, content):
     respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(content))
     s = await ra.build(ra.Form(**GOOD), sarvam)
     assert {ln.language for ln in s.lines} == {"hi-IN", "en-IN"}
-    assert len(s.lines) == 12
+    assert len(s.lines) == 5
     await sarvam.aclose()
 
 
 @respx.mock
 async def test_without_late_for(sarvam):
-    respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(marathi(n=5)))
+    respx.post(f"{BASE}/v1/chat/completions").mock(return_value=chat(marathi()))
     s = await ra.build(ra.Form(**{**GOOD, "late_for": ""}), sarvam)
-    assert len(s.lines) == 15
+    assert len(s.lines) == 7 and " for " not in s.lines[3].text and "के लिए" not in s.lines[1].text
     await sarvam.aclose()
 
 
@@ -124,9 +131,9 @@ def test_end_to_end(tmp_path, monkeypatch):
             r = c.post("/api/railway-announcement", json=GOOD)
             assert r.status_code == 200, r.text
             data = r.json()
-            assert len(data["captions"]) == 18 and "phone_audio_url" not in data
+            assert len(data["captions"]) == 7 and "phone_audio_url" not in data
             assert "12951" in data["captions"][1]["text"]
-            assert tts.call_count == 18
+            assert tts.call_count == 7
             sent = [json.loads(call.request.content) for call in tts.calls]
             assert {b["speaker"] for b in sent} == {"shreya_hi_news", "shubh_en_narration", "mrunal_mr_narration"}
             assert c.post("/api/railway-announcement", json={**GOOD, "train_number": "999"}).status_code == 422

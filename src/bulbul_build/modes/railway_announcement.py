@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -115,34 +116,33 @@ PUNCHLINES = {
 
 
 def template(f: Form, lang: str, punch: int, num: str) -> list[str]:
-    """One announcement. `num` is the train number already written for speech or display."""
-    name, src, dst = f.friend.strip(), f.origin.strip(), f.destination.strip()
+    """One announcement, kept short so all three languages fit in ~30 s.
+
+    `num` is the train number already written for speech or display.
+    Hindi: attention, the train line, punchline. English: train line, punchline.
+    """
+    name, src, dst, why = f.friend.strip(), f.origin.strip(), f.destination.strip(), f.late_for.strip()
     if lang == "en":
-        lines = [
-            "May I have your attention please.",
-            f"Train number {num}, {name} Express, from {src} to {dst}, is running late by {delay(f.late_minutes, 'en')}.",
-        ]
-        if f.late_for.strip():
-            lines.append(f"Everyone waiting for {f.late_for.strip()} is requested to kindly be patient.")
-        lines += [
-            f"The train is expected to arrive on platform number {f.platform}.",
+        reason = f" for {why}" if why else ""
+        return [
+            f"Attention please. Train number {num}, {name} Express from {src} to {dst}, "
+            f"is running {delay(f.late_minutes, 'en')} late{reason}.",
             PUNCHLINES["en"][punch].format(friend=name),
-            "Thank you. Wish you a happy journey.",
         ]
-        return lines
-    lines = [
+    reason = f"{why} के लिए " if why else ""
+    return [
         "यात्रीगण कृपया ध्यान दें।",
-        f"गाड़ी संख्या {num}, {src} से चलकर {dst} को जाने वाली {name} एक्सप्रेस, "
-        f"अपने निर्धारित समय से {delay(f.late_minutes, 'hi')} की देरी से चल रही है।",
-    ]
-    if f.late_for.strip():
-        lines.append(f"{f.late_for.strip()} के लिए इंतज़ार कर रहे सभी लोग कृपया धैर्य बनाए रखें।")
-    lines += [
-        f"यह गाड़ी प्लेटफ़ॉर्म संख्या {f.platform} पर आने की संभावना है।",
+        f"गाड़ी संख्या {num}, {src} से {dst} जाने वाली {name} एक्सप्रेस, "
+        f"{reason}{delay(f.late_minutes, 'hi')} की देरी से प्लेटफ़ॉर्म {f.platform} पर आएगी।",
         PUNCHLINES["hi"][punch].format(friend=name),
-        "धन्यवाद। आपकी यात्रा मंगलमय हो।",
     ]
-    return lines
+
+
+def restore_names(text: str, names: list[str]) -> str:
+    """Put user-typed names back with their exact spelling (the model sometimes lowercases them)."""
+    for n in sorted({n for n in names if n}, key=len, reverse=True):
+        text = re.sub(re.escape(n), lambda _m, n=n: n, text, flags=re.IGNORECASE)
+    return text
 
 
 class Translated(BaseModel):
@@ -153,12 +153,13 @@ SYSTEM = (
     "You translate a funny Indian railway station announcement into an Indian language, for a "
     "text-to-speech voice. Write it the way that language's station announcements sound, formal and "
     "official, so the joke lands. Use the target language's own script. Keep people's names and place "
-    "names in Latin script, exactly as written. The train number is written as digits separated by "
+    "names in Latin script, copied exactly as given, with the same capital letters. "
+    "The train number is written as digits separated by "
     "spaces (like 1 2 9 5 1): copy it exactly, with the spaces. Keep other numbers as digits. "
     "Return exactly one output line per input line."
 )
 
-MAX_REGIONAL_CHARS = 1500  # the English source is ~400 chars; anything far longer is the model rambling
+MAX_REGIONAL_CHARS = 600  # the English source is ~200 chars; anything far longer is the model rambling
 
 
 async def regional_lines(f: Form, punch: int, num: str, sarvam: Sarvam) -> list[str] | None:
@@ -172,12 +173,13 @@ async def regional_lines(f: Form, punch: int, num: str, sarvam: Sarvam) -> list[
         log.warning("regional translation failed: %s", e)
         return None
     texts = [t.split(". ", 1)[1] if t[:3].rstrip(". ").isdigit() and ". " in t else t for t in out.lines]
-    texts = [t.strip() for t in texts]
+    names = [f.friend.strip(), f.origin.strip(), f.destination.strip(), f.late_for.strip()]
+    texts = [restore_names(t.strip(), names) for t in texts]
     if (
         len(texts) != len(src)
         or not all(texts)
         or sum(len(t) for t in texts) > MAX_REGIONAL_CHARS
-        or spaced not in texts[1]
+        or spaced not in texts[0]
     ):
         log.warning("regional translation rejected (%d lines for %d)", len(texts), len(src))
         return None
