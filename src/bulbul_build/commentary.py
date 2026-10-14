@@ -72,9 +72,9 @@ Return JSON: {"line": "..."} with at most WORDS words.
 KIND_HINT = {
     "start": "The match is starting: set the scene (target, balls, bowler, pitch) in one breath.",
     "ball": "The bowler is running in: a quick build-up line.",
-    "hit": "The batter just hit the ball: call the shot and the runs.",
+    "hit": "The batter just hit the ball: call the shot and the runs. If detail.in_air is true the ball is still in the air: build the suspense and give the result last.",
     "miss": "The batter missed or did not swing and the ball went past.",
-    "wicket": "The batter is OUT: dramatic.",
+    "wicket": "The batter is OUT: dramatic. If detail.in_air is true the catch has not landed yet: build up, reveal the OUT at the end.",
     "over": "End of the over: give ONE specific coaching tip from the player's timing stats.",
     "end": "Match over: call the last ball (detail.last_ball) and the verdict, win or lose, with a cheeky line to make them play again.",
 }
@@ -179,7 +179,8 @@ class Commentary:
             self.ended = True
         # A newer event makes an unspoken line stale; a line already speaking finishes,
         # except that a wicket or the end of the match always takes over.
-        urgent = event.get("kind") in ("wicket", "end", "over")
+        # "over" waits for the current sentence; it used to cut it off mid-word.
+        urgent = event.get("kind") in ("wicket", "end")
         if self.current and not self.current.done() and (not self.speaking or urgent):
             self.current.cancel()
             await self.send({"type": "skip", "id": self.current_id})
