@@ -60,3 +60,18 @@ Research batch (output docs/research/tts-only/):
 All three converge on one pick: **Dukaan Status / Diwali ad video** (one line
 of text -> instant Bulbul voice -> 9:16 MP4 for WhatsApp Status). Awaiting
 the user's go-ahead.
+
+## 2026-10-15 ~00:45 — widen: user's candidate list
+User wants deep research before choosing, across: WhatsApp/Telegram agentic
+marketing for small businesses (whichever sets up fastest); an in-game AI
+coach speaking personalised tips (simple self-built game, e.g. an endless
+runner); live-stream chat where chosen people's comments are spoken (paid /
+designated fans); edtech (tutor-style: LLM judges a written answer and
+speaks feedback); an expense tracker that asks what a spend was for the
+moment it happens; a slice of the user's other projects. Plus VC funding themes and real user needs.
+Batch 2 (output docs/research/ideas/):
+| Agent | File | Status |
+|---|---|---|
+| research-bots-vc | bots-and-vc.md | running |
+| research-game-stream | game-and-stream.md | running |
+| research-edtech-own | (notes kept outside the repo) | running |
