@@ -72,6 +72,6 @@ moment it happens; a slice of the user's other projects. Plus VC funding themes 
 Batch 2 (output docs/research/ideas/):
 | Agent | File | Status |
 |---|---|---|
-| research-bots-vc | bots-and-vc.md | running |
-| research-game-stream | game-and-stream.md | running |
-| research-edtech-own | (notes kept outside the repo) | running |
+| research-bots-vc | bots-and-vc.md | done |
+| research-game-stream | game-and-stream.md | done |
+| research-edtech-own | (notes kept outside the repo) | done |
