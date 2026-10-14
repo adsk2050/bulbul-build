@@ -71,3 +71,19 @@ def test_romanised_line_falls_back_to_devanagari():
 def test_prompt_carries_score_and_habits():
     p = prompt({"kind": "over", "state": {"need": 12}, "player": {"early": 4}}, ["पहली line"])
     assert '"need": 12' in p and '"early": 4' in p and "पहली line" in p
+
+
+def test_end_line_is_never_cancelled():
+
+    ws, sv = FakeWS(), FakeSarvam(delay=0.03)
+    c = Commentary(ws, sv)
+
+    async def go():
+        await c.on_event({"id": 1, "kind": "end", "detail": {"won": True}})
+        await asyncio.sleep(0.005)
+        await c.on_event({"id": 2, "kind": "hit"})  # late event from the last ball
+        await c.current
+
+    asyncio.run(go())
+    lines = [m["id"] for m in ws.sent if isinstance(m, dict) and m["type"] == "line"]
+    assert lines == [1]

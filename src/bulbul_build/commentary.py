@@ -76,9 +76,21 @@ KIND_HINT = {
     "miss": "The batter missed or did not swing and the ball went past.",
     "wicket": "The batter is OUT: dramatic.",
     "over": "End of the over: give ONE specific coaching tip from the player's timing stats.",
-    "end": "Match over: the verdict, win or lose, with a cheeky line to make them play again.",
+    "end": "Match over: call the last ball (detail.last_ball) and the verdict, win or lose, with a cheeky line to make them play again.",
 }
 WORDS = {"over": 22, "end": 22, "start": 20}
+
+
+# A different angle each line, so the commentary does not settle into one pattern.
+ANGLES = [
+    "a number from the score or the player's stats",
+    "a gentle tease of the batter",
+    "a desi comparison (chai, auto, aunty, shaadi, traffic, exams)",
+    "a tactical note on what to do next ball",
+    "pure hype and noise",
+    "the bowler's point of view",
+    "the imaginary gully crowd's reaction",
+]
 
 
 class Line(BaseModel):
@@ -118,10 +130,12 @@ FALLBACK = {
 
 
 class Commentary:
-    def __init__(self, ws: WebSocket, sarvam: Sarvam, log_path: Path | None = None):
+    def __init__(self, ws: WebSocket, sarvam: Sarvam, log_path: Path | None = None, rng: random.Random | None = None):
         self.ws = ws
         self.log_path = log_path
-        self.session = f"{random.getrandbits(32):08x}"
+        self.rng = rng or random.Random()
+        self.session = f"{self.rng.getrandbits(32):08x}"
+        self.ended = False  # the end-of-match line is never cancelled
         self.sarvam = sarvam
         self.send_lock = asyncio.Lock()
         self.current: asyncio.Task | None = None
@@ -157,6 +171,12 @@ class Commentary:
                 self.current.cancel()
 
     async def on_event(self, event: dict) -> None:
+        if event.get("kind") == "start":
+            self.ended = False
+        elif self.ended:
+            return  # the match is over and its last line is playing
+        if event.get("kind") == "end":
+            self.ended = True
         # A newer event makes an unspoken line stale; a line already speaking finishes,
         # except that a wicket or the end of the match always takes over.
         urgent = event.get("kind") in ("wicket", "end", "over")
@@ -172,13 +192,14 @@ class Commentary:
         kind = event.get("kind", "hit")
         t0 = time.perf_counter()
         system = SYSTEM.replace("WORDS", str(WORDS.get(kind, 12)))
+        system += "\nThis time, angle: " + self.rng.choice(ANGLES) + "."
         rules = game_rules(str(event.get("game") or ""))
         if rules:
             system += "\nThe game being played (rules, controls, what the event fields mean):\n" + rules
         try:
             reply = await self.sarvam.chat_json(
                 system, prompt(event, self.said), Line,
-                mode=MODE, max_tokens=120, temperature=0.95, reasoning=None,
+                mode=MODE, max_tokens=120, temperature=1.0, reasoning=None,
             )
             text = reply.line.strip()
         except SarvamError as e:
@@ -187,7 +208,9 @@ class Commentary:
         except BudgetExceeded:
             await self.send({"type": "error", "message": "Aaj ka quota khatam!"})
             return
-        fallback = not line_ok(text)
+        # Romanised Hinglish is still spoken (Bulbul reads it less well, but one fixed
+        # line every hit sounded worse); only an empty line falls back.
+        fallback = not text.strip()
         if fallback:
             options = [t for t in FALLBACK.get(kind, FALLBACK["hit"]) if t not in self.said[-4:]]
             text = random.choice(options or FALLBACK.get(kind, FALLBACK["hit"]))

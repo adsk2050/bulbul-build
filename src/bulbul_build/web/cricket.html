@@ -404,7 +404,7 @@
           <div style="color: var(--accent-pink); font-size: 14px; font-weight: bold; margin-bottom: 10px;">🎮 HOW TO PLAY</div>
           <div style="font-size: 11px; text-align: left; line-height: 1.6; color: #ccc;">
             • <b>Modes:</b> SOLO, 2P VS (Take Turns), WORLD CUP Tournament.<br>
-            • <b>Desktop:</b> Arrow Left/Right to position batsman. Spacebar to Swing.<br>
+            • <b>Desktop:</b> Arrow Left/Right steps one lane (back to the middle each ball). Spacebar to Swing.<br>
             • <b>Mobile:</b> Touch & drag left/right on pitch to position batsman. Tap pitch to Swing.<br>
             • <b>Loft/Ground:</b> Use Arrow Up/Down or tap screen buttons.<br>
             • <b>Power Shot:</b> Auto-triggers on Space/Tap when meter reaches 100%!
@@ -516,6 +516,9 @@
   const BALLS = 12, MAX_WICKETS = 3;
   const HIT_WINDOW = 62, HIT_REACH = 62; // px of ball travel / sideways reach that still counts as a hit
   const BALL_SPEED = 0.72; // all deliveries slowed to 72% of the original
+  // Arrow keys step one lane per press (holding slid the batter too fast to control);
+  // the batter walks back to the middle before every ball.
+  const LANE_STEP = 30, LANE_MIN = 130, LANE_MID = 180, LANE_MAX = 220;
   let targetRuns = 28;
   let powerMeter = 35;
   let shotType = 'NORMAL';
@@ -552,6 +555,8 @@
     }
     keys[e.code] = true;
 
+    if (e.code === 'ArrowLeft' && !e.repeat) batsman.x = Math.max(LANE_MIN, batsman.x - LANE_STEP);
+    if (e.code === 'ArrowRight' && !e.repeat) batsman.x = Math.min(LANE_MAX, batsman.x + LANE_STEP);
     if (e.code === 'ArrowUp') setShotMode('LOFT');
     if (e.code === 'ArrowDown') setShotMode('GROUND');
     if (e.code === 'Space') executeSwing();
@@ -625,6 +630,7 @@
       ball.vy = 4.0 + Math.random() * 1.0;
     }
 
+    batsman.x = LANE_MID;
     ball.vx *= BALL_SPEED;
     ball.vy *= BALL_SPEED;
     ball.active = true;
@@ -696,26 +702,27 @@
       ballsRemaining--;
       if (caught) wickets++;
 
-      checkGameOver();
+      const last = caught ? { kind: 'wicket', how: 'caught', shot: shotType }
+        : { kind: 'hit', runs: hitRuns, shot: powerShot ? 'POWER' : shotType, timing_ms: timingMs };
+      if (!checkGameOver(last) && window.gv) gv.event(last.kind, last);
       updateUI();
-      if (window.gv) {
-        if (caught) gv.event('wicket', { how: 'caught', shot: shotType });
-        else gv.event('hit', { runs: hitRuns, shot: powerShot ? 'POWER' : shotType, timing_ms: timingMs });
-      }
       nextBall();
     } else {
       playSound(180, 0.2, 'sawtooth');
     }
   }
 
-  function checkGameOver() {
+  // Returns true when the match is over; the end event carries the last ball.
+  function checkGameOver(last) {
     if (ballsRemaining <= 0 || runsScored >= targetRuns || wickets >= MAX_WICKETS) {
       isPlaying = false;
-      window.gv && gv.event('end', { won: runsScored >= targetRuns });
+      window.gv && gv.event('end', { won: runsScored >= targetRuns, last_ball: last || null });
       setTimeout(() => {
         showMatchEndOverlay(runsScored >= targetRuns);
       }, 500);
+      return true;
     }
+    return false;
   }
 
   function showMatchEndOverlay(won) {
@@ -757,8 +764,6 @@
   }
 
   function update() {
-    if (keys['ArrowLeft'] && batsman.x > 130) batsman.x -= 3;
-    if (keys['ArrowRight'] && batsman.x < 220) batsman.x += 3;
 
     if (batsman.swingAnim > 0) batsman.swingAnim--;
     if (bowler.armAnim > 0) bowler.armAnim--;
@@ -777,12 +782,10 @@
         ball.active = false;
         ballsRemaining--;
         if (bowledOut) wickets++;
-        checkGameOver();
+        const last = bowledOut ? { kind: 'wicket', how: 'bowled', swung: swungThisBall }
+          : { kind: 'miss', swung: swungThisBall };
+        if (!checkGameOver(last) && window.gv) gv.event(last.kind, last);
         updateUI();
-        if (window.gv) {
-          if (bowledOut) gv.event('wicket', { how: 'bowled', swung: swungThisBall });
-          else gv.event('miss', { swung: swungThisBall });
-        }
         nextBall();
       }
     }
