@@ -531,8 +531,12 @@
   // Download keeps the file, for the gallery or a desktop. Where a page cannot
   // share files, Download is the only button.
   let row = null, shareBtn = null, saveBtn = null;
+  // Share only where it leads somewhere (WhatsApp Status is a phone thing); a desktop
+  // gets Download alone. Touch-first screens count as phones and tablets.
+  const onPhone = () => (navigator.userAgentData && navigator.userAgentData.mobile)
+    || matchMedia("(pointer: coarse)").matches;
   const canShareFiles = () => {
-    try { return !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.mp4", { type: "video/mp4" })] })); } catch (_) { return false; }
+    try { return onPhone() && !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.mp4", { type: "video/mp4" })] })); } catch (_) { return false; }
   };
   // The game's own button (Kit.ts cta()): a coloured face on a ledge, its display font.
   function button(kind, onClick) {
@@ -601,7 +605,13 @@
   async function share() {
     if (!reel || reel.state !== "ready") return;
     const text = `Maine Bulbul Flash Cricket mein ${summary.runs} banaye, Bulbul ki live commentary ke saath! Tum beat karo: ${location.origin}/bulbul-flash/`;
-    try { await navigator.share({ files: [reel.file], text }); } catch (e) { if (e.name !== "AbortError") download(); }
+    try {
+      await navigator.share({ files: [reel.file], text });
+    } catch (e) {
+      // Never a silent download: say so, and leave Download beside it.
+      if (e.name !== "AbortError") label(shareBtn, "SHARE DIDN'T OPEN, USE DOWNLOAD");
+      console.warn("[reel] share", e);
+    }
   }
 
   window.bulbulReel = {
