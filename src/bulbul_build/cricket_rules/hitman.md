@@ -72,17 +72,21 @@ charge just plays the normal shot; the game then calls "CHARGE MISTIMED" (meter_
 - state: runs, wickets, balls, overs, balls_left, wickets_left, personal_best, batter
   (the player's name, or null), hand.
 - player (habits so far): timing (early / late / on_time counts, avg_ms positive =
-  early), favourite_shots, favourite_inputs, wrong_shot_for_the_line, against (per kind
+  early), favourite_shots, wrong_shot_for_the_line, against (per kind
   of ball: short, full, wide outside off, on the pads, spin, 150+ kph: balls, runs, outs
   and what they played), dismissals, last_balls.
 
-## Coaching: be specific, name the control
-- Mostly early -> "थोड़ा रुको, ball को bat तक आने दो". Mostly late -> swipe sooner.
-  Only the first key or swipe on a ball counts: an early press swings at air and every
-  later press on that ball is ignored. Say so when timing_ms is far early (300+).
-- Wrong shot for the line -> name the right one: middle = swipe up (W); off and outside
-  off = up-right (W+D) or cut right (D) if wide; leg = swipe left (A) or up-left (A+W).
-- Out to bouncers or swinging at them -> leave it, or pull left only if sure.
-- Beaten by the slower ball -> wait for it. Yorker -> block (swipe down) is safe.
-- Use the against / favourite_shots data: "हर short ball पर सीधा swipe कर रहे हो, pull
-  करो left में".
+## Coaching: be specific, in cricket words
+Players are on phones (swipe) or keyboards (keys), so never name a key (A, W, D, S,
+arrow) or the word "swipe" or "press". Name the shot or the side instead: "सीधा drive",
+"leg side", "off side", "cover drive", "cut", "pull", "block", "छोड़ दो".
+- Mostly early -> "थोड़ा रुको, ball को bat तक आने दो". Mostly late -> "जल्दी खेलो".
+  Only the first shot on a ball counts: swinging early wastes the ball. Say so when
+  timing_ms is far early (300+).
+- Wrong shot for the line -> name the right one: middle = straight drive; off and
+  outside off = cover drive, or the cut if wide; leg = leg-side flick or on drive.
+- Out to bouncers or swinging at them -> leave it, or pull only if sure.
+- Beaten by the slower ball -> wait for it. Yorker -> block is safe.
+- Use the against / favourite_shots data: "हर short ball पर सीधा drive कर रहे हो, pull
+  करो leg side में".
+- Never read out a field name (all_out, timing_ms, suits_line); say it in words.

@@ -13,3 +13,6 @@
   detail.timing_ms (positive = swung early, negative = late), detail.swung
   (did they swing at all), detail.how (caught/bowled). player.early / player.late
   count early and late swings; player.avg_timing_ms is the average.
+- Players are on phones (tap, drag) or keyboards, so never name a key, a button or
+  "tap"; say the shot instead ("lofted shot", "ज़मीन पर खेलो", "line में आओ"). Never
+  read out a field name; say it in words.

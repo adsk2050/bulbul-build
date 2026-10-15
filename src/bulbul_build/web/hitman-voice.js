@@ -56,6 +56,16 @@
     el.classList.add("on");
     clearTimeout(hideTimer);
   }
+  // The game's menus, scorecard and feedback sheet are .modal-overlay screens; a
+  // caption on top of them covered their text. The line is hidden while one is
+  // up (its audio still plays).
+  function screenUp() {
+    for (const el of document.querySelectorAll(".modal-overlay, dialog[open]")) {
+      if (!el.classList.contains("hidden") && el.getClientRects().length) return true;
+    }
+    return false;
+  }
+  setInterval(() => { box.style.visibility = screenUp() ? "hidden" : ""; }, 200);
   function fadeLineSoon() {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => $("bb-line") && $("bb-line").classList.remove("on"), 5000);
@@ -136,7 +146,7 @@
   // ---- the player's habits, sent with every event so the coach can be specific ----
   const h = {
     balls: 0, swings: 0, early: 0, late: 0, onTime: 0, sumTiming: 0, timed: 0,
-    shots: {}, inputs: {}, offLine: 0, leftAlone: 0, sixes: 0, fours: 0, dots: 0,
+    shots: {}, offLine: 0, leftAlone: 0, sixes: 0, fours: 0, dots: 0,
     outs: {}, vs: {}, recent: [],
   };
   const bump = (o, k) => { o[k] = (o[k] || 0) + 1; };
@@ -165,7 +175,6 @@
     else {
       h.swings++;
       bump(h.shots, d.shot_code);
-      if (d.input) bump(h.inputs, `${d.input.via} ${d.input.direction}`);
       if (d.early_or_late === "early") h.early++;
       else if (d.early_or_late === "late") h.late++;
       else if (d.early_or_late === "on time") h.onTime++;
@@ -188,7 +197,6 @@
       balls_faced: h.balls, swings: h.swings, left_alone: h.leftAlone,
       timing: { early: h.early, late: h.late, on_time: h.onTime, avg_ms: h.timed ? Math.round(h.sumTiming / h.timed) : null, note: "positive ms = early" },
       favourite_shots: top(h.shots, 3) || null,
-      favourite_inputs: top(h.inputs, 2) || null,
       wrong_shot_for_the_line: h.offLine,
       against: vs,
       sixes: h.sixes, fours: h.fours, dots: h.dots,
@@ -229,7 +237,7 @@
       state = state || {};
       if (kind === "start") {
         for (const k of ["balls", "swings", "early", "late", "onTime", "sumTiming", "timed", "offLine", "leftAlone", "sixes", "fours", "dots"]) h[k] = 0;
-        h.shots = {}; h.inputs = {}; h.outs = {}; h.vs = {}; h.recent = [];
+        h.shots = {}; h.outs = {}; h.vs = {}; h.recent = [];
         held = null;
         return send(kind, detail, state);
       }
