@@ -1,5 +1,5 @@
 "use strict";
-// Highlight reel for Hitman Cricket, built while the innings is played.
+// Highlight reel for Gully Bhaiya Cricket, built while the innings is played.
 //
 // Every ball is recorded in the browser from the bowler's run-up: the game's
 // canvas and the game's own sound. Gully Bhaiya's voice is not taken from that
@@ -281,7 +281,7 @@
     await done;
     clearInterval(c.tick); c.actx.close();
     if (mine !== innings) return;
-    const name = `hitman-${summary.runs}-${summary.wickets}.${EXT}`;
+    const name = `gully-bhaiya-${summary.runs}-${summary.wickets}.${EXT}`;
     reel = { state: "ready", file: new File([new Blob(c.chunks, { type: MIME })], name, { type: MIME.split(";")[0] }) };
     cut = null;
     renderButton();
@@ -313,14 +313,14 @@
   function outroCard(ctx) {
     backdrop(ctx);
     const s = summary || { runs: 0, wickets: 0, balls: 0, name: "" };
-    centred(ctx, "HITMAN CRICKET", 250, 40, "#ffb347");
+    centred(ctx, "GULLY BHAIYA CRICKET", 250, 40, "#ffb347");
     if (s.name) centred(ctx, s.name, 360, 64, "#ffffff");
     centred(ctx, `${s.runs}/${s.wickets}`, 520, 140, "#ffffff", 900);
     centred(ctx, `${s.balls} balls`, 600, 36, "#cfe3f5", 600);
     centred(ctx, "Gully Bhaiya", 790, 76, "#ffffff");
     centred(ctx, "on Sarvam Bulbul Flash", 870, 44, "#ffb347");
     centred(ctx, `Can you beat ${s.runs}?`, 1020, 56, "#ffffff");
-    centred(ctx, location.host + "/hitman", 1110, 38, "#7fd3ff", 700);
+    centred(ctx, location.host + "/gully-bhaiya", 1110, 38, "#7fd3ff", 700);
   }
   function overlay(ctx, clip) {
     const d = clip.ball.detail || {};
@@ -417,7 +417,7 @@
   }
   async function share() {
     if (!reel || reel.state !== "ready") return;
-    const text = `Maine Hitman Cricket mein ${summary.runs} banaye, Gully Bhaiya ki live commentary ke saath! Tum beat karo: ${location.origin}/hitman/`;
+    const text = `Maine Gully Bhaiya Cricket mein ${summary.runs} banaye, Gully Bhaiya ki live commentary ke saath! Tum beat karo: ${location.origin}/gully-bhaiya/`;
     try { await navigator.share({ files: [reel.file], text }); } catch (e) { if (e.name !== "AbortError") download(); }
   }
 

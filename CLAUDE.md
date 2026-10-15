@@ -104,3 +104,20 @@ and fillers, `web/talk.js` the mic, VAD, playback, sprites and share clip.
   `uv run python scripts/talk_timings.py` prints them. What STT heard is in
   `data/utterances/`.
 - Art: `scripts/make_art.py` (OpenAI images, paid; `build` step is free).
+
+## Gully Bhaiya Cricket (`/gully-bhaiya/`, the 3D game)
+
+An open-source 3D batting game by ekcuttingchaidesign (upstream name "Hitman
+Cricket"; `/hitman` redirects) with Gully Bhaiya commentating live. Internal
+names still say `hitman`: `web/hitman/` (the built game, committed),
+`web/hitman-voice.js` (commentary socket, habits, match history),
+`web/hitman-reel.js` (highlight reel and Share/Download), `cricket_rules/hitman.md`.
+
+- **Rebuild:** `tools/hitman/build.sh <upstream checkout with npm ci>`. Our changes
+  to the game live in `tools/hitman/bulbul-hooks.patch` plus `tools/hitman/bulbul.ts`;
+  edit the checkout, then regenerate the patch from a pristine copy. The build
+  empties upstream's offensive-word lists (`strip_wordlists.py`).
+- **No board server:** the game runs offline (`canRegister: false`, `BULBUL_BUILD`
+  flag, CSS in the patched `index.html` hides board features).
+- **The reel** records the canvas plus game audio in the browser; Bhaiya's voice
+  is laid in from the line PCM, whole. 30 s max. Free: no server calls.

@@ -1,7 +1,7 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 08:35:19.642092600 +0530
-+++ b/index.html	2026-10-15 08:35:19.667305600 +0530
-@@ -1,27 +1,32 @@
+--- a/index.html	2026-10-15 09:07:23.111045000 +0530
++++ b/index.html	2026-10-15 09:07:23.379184800 +0530
+@@ -1,27 +1,39 @@
 -<!doctype html>
 -<html lang="en">
 -  <head>
@@ -35,22 +35,29 @@ diff -ruN a/index.html b/index.html
 +    <meta charset="UTF-8" />
 +    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 +    <meta name="theme-color" content="#101e2c" />
-+    <meta name="description" content="Own the crease. A free 3D cricket batting challenge: five overs, three wickets, and one high score to chase." />
-+    <meta property="og:title" content="Hitman Cricket — Own the crease" />
-+    <meta property="og:description" content="Five overs. Three wickets. Swipe to bat on your phone, or play with your keyboard. Can you beat your friends?" />
++    <meta name="description" content="Bat five overs while Gully Bhaiya commentates every ball live in Hinglish, voiced by Sarvam Bulbul Flash." />
++    <meta property="og:title" content="Gully Bhaiya Cricket" />
++    <meta property="og:description" content="Five overs, three wickets, and Gully Bhaiya on the mic for every ball. Can you beat your friends?" />
 +    <meta property="og:type" content="website" />
-+    <title>Hitman Cricket with Gully Bhaiya — live Bulbul commentary</title>
++    <title>Gully Bhaiya Cricket — live Bulbul commentary</title>
 +    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 +  </head>
 +  <body>
 +    <div id="app"></div>
 +    <!-- Beside the game on a desktop, where there is room (see .desk-note in styles.css). -->
 +    <!-- Bulbul build: features that need the game's own server, or stand between the player and the innings. -->
++    <style>
++      /* The cover's title, in the game's display font, where its logo image was. */
++      .bb-title{margin:0;text-align:center;font-family:var(--f-display);line-height:.92;color:#fff;
++        text-shadow:0 3px 0 #b5470f,0 6px 14px rgba(0,0,0,.45);transform:rotate(-4deg)}
++      .bb-title span{display:block;font-size:min(calc(var(--u) * 52),6.2cqh);color:#ffc93c}
++      .bb-title b{display:block;font-size:min(calc(var(--u) * 64),7.6cqh);font-weight:400}
++    </style>
 +    <style>#cover-profile,#feedback-open,#feedback-pause,#feedback-card,#challenge-set,#card-key,.ec-player{display:none!important}</style>
 +    <aside class="desk-note" aria-label="About this page">
 +      <h2>Gully Bhaiya on the mic</h2>
 +      <p>Every ball gets a live Hinglish line, spoken by Sarvam Bulbul. He remembers your past matches and coaches you from them.</p>
-+      <p class="bb-credit">Game: <a href="https://github.com/ekcuttingchaidesign/Hitman-Cricket" target="_blank" rel="noopener">Hitman Cricket</a> by ekcuttingchaidesign.</p>
++      <p class="bb-credit">The 3D game is open source, by <a href="https://github.com/ekcuttingchaidesign/Hitman-Cricket" target="_blank" rel="noopener">ekcuttingchaidesign</a>.</p>
 +      <p>Bat on the keyboard, or swipe on a phone:</p>
 +      <div class="desk-keys"><span class="desk-keyset"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></span><span>or</span><span class="desk-keyset"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div>
 +    </aside>
@@ -62,8 +69,8 @@ diff -ruN a/index.html b/index.html
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 08:35:19.775366400 +0530
-+++ b/src/Game.ts	2026-10-15 08:35:19.811132900 +0530
+--- a/src/Game.ts	2026-10-15 09:07:23.115065200 +0530
++++ b/src/Game.ts	2026-10-15 09:07:23.381740500 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
@@ -225,8 +232,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 08:35:19.917597200 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 08:35:19.949651300 +0530
+--- a/src/game/InputManager.ts	2026-10-15 09:07:23.203779500 +0530
++++ b/src/game/InputManager.ts	2026-10-15 09:07:23.734426400 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -293,9 +300,134 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
      this.used = true; this.pending = null; this.shoot(shot, time);
    }
    flush(time: number) {
+diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
+--- a/src/game/KeyImage.ts	2026-10-15 09:07:23.158986700 +0530
++++ b/src/game/KeyImage.ts	2026-10-15 09:07:23.851605000 +0530
+@@ -98,7 +98,7 @@
+   ctx.fillStyle = '#ffffffcc';
+   ctx.font = `800 26px ${FAMILY}`;
+   ctx.letterSpacing = '3px';
+-  ctx.fillText('HITMAN CRICKET — CAREER KEY', W / 2, 190);
++  ctx.fillText('GULLY BHAIYA CRICKET — CAREER KEY', W / 2, 190);
+   ctx.letterSpacing = '0px';
+ 
+   ctx.fillStyle = '#ffffffa8';
+diff -ruN a/src/game/Share.ts b/src/game/Share.ts
+--- a/src/game/Share.ts	2026-10-15 09:07:23.174537400 +0530
++++ b/src/game/Share.ts	2026-10-15 09:07:23.833388100 +0530
+@@ -1,13 +1,13 @@
+ /** The link a friend follows: this game, without whatever seed or debug flag is on. */
+ export const gameLink = () => new URL(location.pathname, location.origin).href;
+ export const shareText = (runs: number, url: string) =>
+-  `I scored ${runs} runs on Hitman Cricket, Can you beat my score ${url}`;
++  `I scored ${runs} runs on Gully Bhaiya Cricket, Can you beat my score ${url}`;
+ export const whatsappLink = (runs: number, url: string) =>
+   `https://wa.me/?text=${encodeURIComponent(shareText(runs, url))}`;
+ 
+ /** The caption that rides along with the picture, wherever the sheet sends it. */
+ export const storyText = (runs: number, url: string) =>
+-  `${runs} runs on Hitman Cricket. Five overs, three wickets. Play at ${url}`;
++  `${runs} runs on Gully Bhaiya Cricket. Five overs, three wickets. Play at ${url}`;
+ 
+ /** The card travels as a PNG for its flat colour and sharp type; the story is a
+     photograph with type on it, so it travels as a JPEG. */
+@@ -30,14 +30,14 @@
+  * has to open with the same number the picture does.
+  */
+ export const statsShareText = (lead: { label: string; value: number }, innings: number, url: string) =>
+-  `${lead.value} ${lead.label.toLowerCase()} across ${innings} ${innings === 1 ? 'innings' : 'innings'} on Hitman Cricket. Beat my numbers: ${url}`;
++  `${lead.value} ${lead.label.toLowerCase()} across ${innings} ${innings === 1 ? 'innings' : 'innings'} on Gully Bhaiya Cricket. Beat my numbers: ${url}`;
+ 
+ export const statsWhatsappLink = (lead: { label: string; value: number }, innings: number, url: string) =>
+   `https://wa.me/?text=${encodeURIComponent(statsShareText(lead, innings, url))}`;
+ 
+ /** What rides along with the story picture, wherever the sheet sends it. */
+ export const statsStoryText = (lead: { label: string; value: number }, innings: number, url: string) =>
+-  `${lead.value} ${lead.label.toLowerCase()} across ${innings} ${innings === 1 ? 'innings' : 'innings'} on Hitman Cricket. Play at ${url}`;
++  `${lead.value} ${lead.label.toLowerCase()} across ${innings} ${innings === 1 ? 'innings' : 'innings'} on Gully Bhaiya Cricket. Play at ${url}`;
+ 
+ /** The card travels as a PNG for its flat colour and sharp type; the story is a
+     photograph with type on it, so it travels as a JPEG. */
+@@ -54,7 +54,7 @@
+  * should carry everything needed rather than just the half that is secret.
+  */
+ export const keyShareText = (name: string, code: string, url: string) =>
+-  `My Hitman Cricket career key\n\nName: ${name}\nKey: ${code}\n\n`
++  `My Gully Bhaiya Cricket career key\n\nName: ${name}\nKey: ${code}\n\n`
+   + `Keep this message. The two together bring my record back on any phone. ${url}`;
+ 
+ export const keyWhatsappLink = (name: string, code: string, url: string) =>
+diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
+--- a/src/game/StatsCard.ts	2026-10-15 09:07:23.174537400 +0530
++++ b/src/game/StatsCard.ts	2026-10-15 09:07:23.883220200 +0530
+@@ -792,7 +792,7 @@
+   // long one is set smaller, and past that cut short.
+   ctx.font = font(700, 11.5);
+   const room = contentW - ctx.measureText('BEAT MY NUMBERS').width - 14;
+-  let address = link ? link.replace(/^https?:\/\//, '').replace(/\/$/, '') : 'Hitman Cricket';
++  let address = link ? link.replace(/^https?:\/\//, '').replace(/\/$/, '') : 'Gully Bhaiya Cricket';
+   let size = 11.5;
+   ctx.font = font(600, size);
+   while (ctx.measureText(address).width > room && size > 9) ctx.font = font(600, size -= 0.5);
+@@ -840,7 +840,7 @@
+   const y = margin + TIER_CARD.height + 30;
+   ctx.font = font(600, 12);
+   ctx.fillStyle = '#8494a0';
+-  ctx.fillText(link ? link.replace(/^https?:\/\//, '').replace(/\/$/, '') : 'Hitman Cricket', margin + 4, y);
++  ctx.fillText(link ? link.replace(/^https?:\/\//, '').replace(/\/$/, '') : 'Gully Bhaiya Cricket', margin + 4, y);
+   ctx.textAlign = 'right';
+   ctx.fillStyle = '#ed7044';
+   ctx.font = font(700, 12);
+diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
+--- a/src/game/challenge-api.ts	2026-10-15 09:07:23.203779500 +0530
++++ b/src/game/challenge-api.ts	2026-10-15 09:07:23.759613600 +0530
+@@ -220,11 +220,11 @@
+ export const copy = {
+   /** The link, before anybody has batted. */
+   invite: (url: string) =>
+-    `Fancy 30 balls? I've opened a match on Hitman Cricket. You won't see my score till your last ball. ${url}`,
++    `Fancy 30 balls? I've opened a match on Gully Bhaiya Cricket. You won't see my score till your last ball. ${url}`,
+   /** The link, once the sender's innings is in. */
+   set: (url: string, runs?: number) => runs === undefined
+-    ? `I've set you a score on Hitman Cricket. You won't see it till your 30th ball. ${url}`
+-    : `I scored ${runs} on Hitman Cricket. Beat it — you'll find out at ball 30. ${url}`,
++    ? `I've set you a score on Gully Bhaiya Cricket. You won't see it till your 30th ball. ${url}`
++    : `I scored ${runs} on Gully Bhaiya Cricket. Beat it — you'll find out at ball 30. ${url}`,
+   /** The link again, to somebody who has not got round to it. */
+   nudge: (url: string) => `Still waiting on you. My innings is in. Yours isn't. ${url}`,
+   /** A fresh room, aimed at the same person. */
+diff -ruN a/src/game/rating.ts b/src/game/rating.ts
+--- a/src/game/rating.ts	2026-10-15 09:07:23.191242700 +0530
++++ b/src/game/rating.ts	2026-10-15 09:07:23.733430500 +0530
+@@ -48,7 +48,7 @@
+ 
+ /** What each is called on the prompt. */
+ export const RATED_NAME: Record<RatedThing, string> = {
+-  game: 'Hitman Cricket',
++  game: 'Gully Bhaiya Cricket',
+   classic: 'The Blast',
+   survive: 'Test Survival',
+   marathon: 'Test Marathon',
+diff -ruN a/src/game/tier.ts b/src/game/tier.ts
+--- a/src/game/tier.ts	2026-10-15 09:07:23.197245000 +0530
++++ b/src/game/tier.ts	2026-10-15 09:07:23.791763900 +0530
+@@ -239,10 +239,10 @@
+   },
+   {
+     key: 'hitman',
+-    name: 'HITMAN',
+-    short: 'Hitman',
++    name: 'LEGEND',
++    short: 'Legend',
+     at: { classic: 15000, survive: 4250, marathon: 30000 },
+-    blurb: 'The one the game is named for.',
++    blurb: 'The top of the ladder.',
+     // Black and gold, and the only card in the game that gets to be either.
+     // The ground is black with the faintest warmth in it rather than a dark
+     // gold — gold on gold has nowhere to shine from.
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts	2026-10-15 08:35:20.053612300 +0530
-+++ b/src/main.ts	2026-10-15 08:35:20.080399800 +0530
+--- a/src/main.ts	2026-10-15 09:07:23.114739300 +0530
++++ b/src/main.ts	2026-10-15 09:07:23.382740000 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -307,9 +439,29 @@ diff -ruN a/src/main.ts b/src/main.ts
    window.addEventListener('pagehide', () => game.dispose(), { once: true });
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
+diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
+--- a/src/scene/CrowdCelebration.ts	2026-10-15 09:07:23.241030400 +0530
++++ b/src/scene/CrowdCelebration.ts	2026-10-15 09:07:23.679224300 +0530
+@@ -19,12 +19,12 @@
+ interface Reaction { ms: number; strength: number; labels: (mark: number) => string[]; priority: number }
+ export const CROWD_MOMENTS: Record<CrowdMoment, Reaction> = {
+   'hit-four': { ms: 2400, strength: .48, labels: () => ['4', 'FOUR!', 'CLASS!', 'SHOT!', 'CRACKING!', 'ALONG THE CARPET'], priority: 1 },
+-  'hit-six': { ms: 3200, strength: .75, labels: () => ['6', 'SIX!', 'HITMAN!', 'MAXIMUM!', 'OUT OF HERE!', 'INTO ORBIT'], priority: 1 },
+-  fifty: { ms: 3800, strength: .85, labels: () => ['50', 'FIFTY!', '{NAME} 50', 'KEEP GOING!', 'HITMAN!'], priority: 2 },
++  'hit-six': { ms: 3200, strength: .75, labels: () => ['6', 'SIX!', 'SHABAASH!', 'MAXIMUM!', 'OUT OF HERE!', 'INTO ORBIT'], priority: 1 },
++  fifty: { ms: 3800, strength: .85, labels: () => ['50', 'FIFTY!', '{NAME} 50', 'KEEP GOING!', 'SHABAASH!'], priority: 2 },
+   // 150, 250 and 350: the raised bat, and the placards say which.
+-  raise: { ms: 3800, strength: .85, labels: mark => [String(mark), 'WELL BATTED!', `{NAME} ${mark}`, 'NOT DONE YET', 'HITMAN!'], priority: 2 },
++  raise: { ms: 3800, strength: .85, labels: mark => [String(mark), 'WELL BATTED!', `{NAME} ${mark}`, 'NOT DONE YET', 'SHABAASH!'], priority: 2 },
+   century: { ms: 4800, strength: 1, labels: () => ['100', 'TAKE A BOW', '{NAME} 100*', 'HERO!', 'CENTURY!', 'GO {NAME}!'], priority: 3 },
+-  'six-sixes': { ms: 4800, strength: 1, labels: () => ['6 x 6', 'UNREAL!', 'SIX SIXES!', '{NAME} 6 x 6', 'HITMAN!'], priority: 3 },
++  'six-sixes': { ms: 4800, strength: 1, labels: () => ['6 x 6', 'UNREAL!', 'SIX SIXES!', '{NAME} 6 x 6', 'SHABAASH!'], priority: 3 },
+   double: { ms: 5200, strength: 1, labels: () => ['200', 'DOUBLE!', '{NAME} 200*', 'DOUBLE TON!', 'GO {NAME}!'], priority: 3 },
+   triple: { ms: 5200, strength: 1, labels: () => ['300', 'TRIPLE!', '{NAME} 300*', 'LEGEND!', 'HISTORY!'], priority: 3 },
+   four: { ms: 5600, strength: 1, labels: () => ['400', 'FOUR HUNDRED', '{NAME} 400*', 'LEGEND!', 'IMMORTAL'], priority: 3 },
 diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
---- a/src/scene/GameScene.ts	2026-10-15 08:35:20.190722700 +0530
-+++ b/src/scene/GameScene.ts	2026-10-15 08:35:20.215478700 +0530
+--- a/src/scene/GameScene.ts	2026-10-15 09:07:23.247028900 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 09:07:23.639929100 +0530
 @@ -996,6 +996,8 @@
    private static meetsAt(charging: boolean) {
      return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
@@ -319,3 +471,129 @@ diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
    swing(shot: ShotType, now: number, delivery: Delivery, charging = false, lofted = false, sweeping = false, levelled = false) {
      const contact = this.flight(delivery, GameScene.meetsAt(charging));
      this.batter.swing(shot, now, contact.x, contact.y, contact.z, charging, lofted, sweeping, levelled);
+diff -ruN a/src/scene/boards.ts b/src/scene/boards.ts
+--- a/src/scene/boards.ts	2026-10-15 09:07:23.246027700 +0530
++++ b/src/scene/boards.ts	2026-10-15 09:07:23.659136400 +0530
+@@ -19,7 +19,7 @@
+ interface Ad { bg: string; ink: string; big: string; small?: string; accent?: string }
+ 
+ const ADS: Ad[] = [
+-  { bg: '#16304a', ink: '#ffffff', big: 'HITMAN CRICKET', accent: '#8fd3ff' },
++  { bg: '#16304a', ink: '#ffffff', big: 'GULLY BHAIYA', accent: '#8fd3ff' },
+   { bg: '#1f5fd6', ink: '#ffffff', big: 'COVER DRIVE', small: 'MOTORS' },
+   { bg: '#3b1f6e', ink: '#ffd23f', big: 'GOLDEN DUCK', small: 'INSURANCE' },
+   { bg: '#f4f6f8', ink: '#16304a', big: 'SILLY POINT', small: 'PAINTS', accent: '#1f9d8b' },
+diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
+--- a/src/ui/Cover.ts	2026-10-15 09:07:23.230784200 +0530
++++ b/src/ui/Cover.ts	2026-10-15 09:07:23.515216000 +0530
+@@ -23,7 +23,6 @@
+ import { cta, icon } from './Kit';
+ 
+ const POSTER = new URL('../assets/entry/cover-poster.webp', import.meta.url).href;
+-const TITLE = new URL('../assets/title.webp', import.meta.url).href;
+ const BEAM_LEFT = new URL('../assets/entry/beam-left.svg', import.meta.url).href;
+ const BEAM_RIGHT = new URL('../assets/entry/beam-right.svg', import.meta.url).href;
+ const FLASH = new URL('../assets/entry/flash.svg', import.meta.url).href;
+@@ -175,7 +174,7 @@
+             ${motion()}
+           </div>
+           <div class="cover-top">${profileChip(view.player)}</div>
+-          <div class="cover-title-wrap"><img class="cover-title" src="${TITLE}" alt="Hitman Cricket" decoding="async"><span class="cover-shine" aria-hidden="true"></span></div>
++          <div class="cover-title-wrap"><h1 class="cover-title bb-title" aria-label="Gully Bhaiya Cricket"><span>GULLY BHAIYA</span><b>CRICKET</b></h1><span class="cover-shine" aria-hidden="true"></span></div>
+           <div class="cover-actions">
+             <button id="cover-board" type="button" class="cover-best">
+               <span class="cover-best-trophy">${icon('trophy')}</span>
+diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
+--- a/src/ui/Feedback.ts	2026-10-15 09:07:23.221268500 +0530
++++ b/src/ui/Feedback.ts	2026-10-15 09:07:23.630861000 +0530
+@@ -16,7 +16,7 @@
+ /** The thank-you's tick in its green disc (Figma 133:12946). */
+ const DONE_TICK = '<svg class="feedback-tick" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect width="64" height="64" rx="32" fill="#5BD08F" fill-opacity=".16"/><path d="M21 32 29 40 43 24" stroke="#5BD08F" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+ /** The shared link's masthead (Figma 133:12691): the logo, and what the form costs. */
+-const MASTHEAD = `<div class="feedback-masthead"><img src="${TITLE}" alt="Hitman Cricket"><p>Two minutes, ten taps. It shapes what gets built next.</p></div>`;
++const MASTHEAD = `<div class="feedback-masthead"><img src="${TITLE}" alt="Gully Bhaiya Cricket"><p>Two minutes, ten taps. It shapes what gets built next.</p></div>`;
+ 
+ /**
+  * The questionnaire, as a screen.
+@@ -232,7 +232,7 @@
+         <h2>Thank you</h2>
+         <p>That is genuinely useful. Every answer is read.</p>
+         ${standalone
+-          ? `<a class="k-cta k-cta--primary is-wide" href="${gameLink()}"><span class="k-cta-face"><span>PLAY HITMAN CRICKET</span></span></a>`
++          ? `<a class="k-cta k-cta--primary is-wide" href="${gameLink()}"><span class="k-cta-face"><span>PLAY GULLY BHAIYA CRICKET</span></span></a>`
+           : cta({ kind: 'primary', label: 'BACK TO THE GAME', id: 'feedback-done', wide: true })}
+       </div>`;
+     const done = document.getElementById('feedback-done');
+diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
+--- a/src/ui/HUD.ts	2026-10-15 09:07:23.220262200 +0530
++++ b/src/ui/HUD.ts	2026-10-15 09:07:23.584959500 +0530
+@@ -334,7 +334,7 @@
+         -->
+         <div class="score-bug">
+         <div id="scoreboard" class="scoreboard" role="group" aria-label="Scoreboard">
+-          <span class="bug-tag" aria-hidden="true">HITMAN<br>OVAL</span>
++          <span class="bug-tag" aria-hidden="true">GULLY<br>OVAL</span>
+           <span class="bug-total" id="total" role="img"><span id="runs"></span><span class="bug-slash">/</span><span class="bug-wkts" id="wickets"></span></span>
+           <span class="bug-cell"><b id="overs"></b><i>OVERS</i></span>
+           <span class="bug-cell"><b id="last" class="bug-last" role="img"></b><i>LAST</i></span>
+@@ -646,7 +646,7 @@
+         <div id="share-status" class="share-status hidden" role="status"></div>
+         <pre id="debug" class="debug hidden"></pre>
+       </div>
+-      <dialog id="help-dialog"><button class="close-help hud-button" aria-label="Close instructions">×</button><p class="eyebrow">WELCOME TO HITMAN OVAL</p><h2>Make every ball count.</h2><p>Face 30 balls, with three wickets to spare. Read the ball's position as it approaches the crease and press a shot key just as it reaches your bat.</p><div class="touch-only"><p>Swipe directly on the field when the ball reaches your bat. A short, decisive swipe is enough.</p><ul><li>← Left: leg-side shot</li><li>↖ Up-left: long-on drive</li><li>↑ Up: straight drive</li><li>↗ Up-right: cover drive</li><li>→ Right: square cut, behind point</li><li>↓ Down: forward defensive</li><li>↙ Down-left: the scoop, over the keeper (meter full)</li><li>↘ Down-right: the reverse scoop, over the slips (meter full)</li></ul><p>One swipe per ball. A tap plays no shot. The same timing and wicket rules apply.</p></div><ul class="keyboard-only"><li><kbd>A</kbd> plays left to leg; <kbd>D</kbd> cuts it square off the back foot.</li><li><kbd>W</kbd> drives straight back toward the bowler.</li><li>Press <kbd>A</kbd> + <kbd>W</kbd> or <kbd>W</kbd> + <kbd>D</kbd> within 100 ms for a diagonal drive.</li><li><kbd>S</kbd> blocks it: bat down, no runs, and nothing can be caught off it. With the meter full, <kbd>S</kbd> + <kbd>A</kbd> scoops it over the keeper and <kbd>S</kbd> + <kbd>D</kbd> reverse-scoops it over the slips.</li><li>The arrow keys play the same shots: <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd>, and pair up the same way.</li><li>One swing per ball. Wait for the ball to come to you.</li><li>Perfect timing can score four or six. Mistimed contact can be caught; missing the stumps' line can mean Bowled or LBW.</li></ul><p class="help-note"><b>The square cut.</b> Swipe out to the off (or press <kbd>D</kbd>) and he rocks onto the back foot and cuts square of the wicket, behind point. It wants width: the further outside off the ball is, the better it plays, and there is nothing in it against a ball at the stumps. It is also the one stroke that answers a bouncer outside off — the ball sits up with room to free the arms at it. Middled, it goes behind point for six or four. Anything else feathers the edge through to the keeper, and a bouncer outside off is exactly where that happens.</p><p class="help-note"><b>Defending.</b> Swipe down (or press <kbd>S</kbd>) and the batter blocks it: the ball dies at his feet for a dot, and a dead bat cannot be caught. Leave it too late, though, and the ball goes past — on the stumps, that bowls you. Blocking costs your confidence nothing, but go three balls without scoring and you will hear about it from the field.</p><p class="help-note"><b>The confidence meter.</b> Boundaries, twos and threes fill it; a ball that beats the bat drains it, a single or a block leaves it where it stands, and a wicket empties it. Full, it pulses — and when a ball you can walk at is coming, the whole field lights up gold from the bowler's run-up. Drive that one — straight, or either diagonal — and time it well, and you charge down the pitch and hit it out of the ground. Miss it and the call tells you which half you got wrong, with the meter still charged.</p><p class="help-note"><b>The scoops.</b> With the meter full, swipe down and to the left (or press <kbd>S</kbd> + <kbd>A</kbd>) at a ball on middle or leg and he crouches, gets the face under it and ramps it over the keeper's shoulder; swipe down and to the right (<kbd>S</kbd> + <kbd>D</kbd>) at one on or outside off and he kneels and reverses it over the slips. Timed perfectly it is six, a shade under is four, held back is ones and twos. Poor timing is a top edge to the keeper, and a ball missed altogether has only your pads between it and the stumps. Neither works on a bouncer, and playing one at the wrong line is playing at air. Either way the meter is spent.</p><p class="help-note">Play with swipes on a phone, or A, W, D, S — or the arrow keys — on a keyboard. Use Pause to take a break or restart.</p><button id="help-done" class="primary-button">GOT IT ${icon('arrow')}</button></dialog>`;
++      <dialog id="help-dialog"><button class="close-help hud-button" aria-label="Close instructions">×</button><p class="eyebrow">WELCOME TO GULLY OVAL</p><h2>Make every ball count.</h2><p>Face 30 balls, with three wickets to spare. Read the ball's position as it approaches the crease and press a shot key just as it reaches your bat.</p><div class="touch-only"><p>Swipe directly on the field when the ball reaches your bat. A short, decisive swipe is enough.</p><ul><li>← Left: leg-side shot</li><li>↖ Up-left: long-on drive</li><li>↑ Up: straight drive</li><li>↗ Up-right: cover drive</li><li>→ Right: square cut, behind point</li><li>↓ Down: forward defensive</li><li>↙ Down-left: the scoop, over the keeper (meter full)</li><li>↘ Down-right: the reverse scoop, over the slips (meter full)</li></ul><p>One swipe per ball. A tap plays no shot. The same timing and wicket rules apply.</p></div><ul class="keyboard-only"><li><kbd>A</kbd> plays left to leg; <kbd>D</kbd> cuts it square off the back foot.</li><li><kbd>W</kbd> drives straight back toward the bowler.</li><li>Press <kbd>A</kbd> + <kbd>W</kbd> or <kbd>W</kbd> + <kbd>D</kbd> within 100 ms for a diagonal drive.</li><li><kbd>S</kbd> blocks it: bat down, no runs, and nothing can be caught off it. With the meter full, <kbd>S</kbd> + <kbd>A</kbd> scoops it over the keeper and <kbd>S</kbd> + <kbd>D</kbd> reverse-scoops it over the slips.</li><li>The arrow keys play the same shots: <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd>, and pair up the same way.</li><li>One swing per ball. Wait for the ball to come to you.</li><li>Perfect timing can score four or six. Mistimed contact can be caught; missing the stumps' line can mean Bowled or LBW.</li></ul><p class="help-note"><b>The square cut.</b> Swipe out to the off (or press <kbd>D</kbd>) and he rocks onto the back foot and cuts square of the wicket, behind point. It wants width: the further outside off the ball is, the better it plays, and there is nothing in it against a ball at the stumps. It is also the one stroke that answers a bouncer outside off — the ball sits up with room to free the arms at it. Middled, it goes behind point for six or four. Anything else feathers the edge through to the keeper, and a bouncer outside off is exactly where that happens.</p><p class="help-note"><b>Defending.</b> Swipe down (or press <kbd>S</kbd>) and the batter blocks it: the ball dies at his feet for a dot, and a dead bat cannot be caught. Leave it too late, though, and the ball goes past — on the stumps, that bowls you. Blocking costs your confidence nothing, but go three balls without scoring and you will hear about it from the field.</p><p class="help-note"><b>The confidence meter.</b> Boundaries, twos and threes fill it; a ball that beats the bat drains it, a single or a block leaves it where it stands, and a wicket empties it. Full, it pulses — and when a ball you can walk at is coming, the whole field lights up gold from the bowler's run-up. Drive that one — straight, or either diagonal — and time it well, and you charge down the pitch and hit it out of the ground. Miss it and the call tells you which half you got wrong, with the meter still charged.</p><p class="help-note"><b>The scoops.</b> With the meter full, swipe down and to the left (or press <kbd>S</kbd> + <kbd>A</kbd>) at a ball on middle or leg and he crouches, gets the face under it and ramps it over the keeper's shoulder; swipe down and to the right (<kbd>S</kbd> + <kbd>D</kbd>) at one on or outside off and he kneels and reverses it over the slips. Timed perfectly it is six, a shade under is four, held back is ones and twos. Poor timing is a top edge to the keeper, and a ball missed altogether has only your pads between it and the stumps. Neither works on a bouncer, and playing one at the wrong line is playing at air. Either way the meter is spent.</p><p class="help-note">Play with swipes on a phone, or A, W, D, S — or the arrow keys — on a keyboard. Use Pause to take a break or restart.</p><button id="help-done" class="primary-button">GOT IT ${icon('arrow')}</button></dialog>`;
+     this.viewport = this.$('viewport'); this.score(new ScoreManager());
+     if (!document.fullscreenEnabled) this.$('fullscreen').classList.add('hidden');
+     this.$('card-career').addEventListener('click', () => this.onStatsOpen?.());
+@@ -3535,7 +3535,7 @@
+     this.$('end-survive').className = `modal-overlay ec-screen is-survive result-${result.toLowerCase()}`;
+     // The share is for a win: the one result worth sending somebody.
+     this.surviveShare = result === 'WON'
+-      ? `Chased it down: ${total}/${down}, ${score.runs} not out off ${score.balls} balls in Test Survival on Hitman Cricket. Your turn. ${gameLink()}`
++      ? `Chased it down: ${total}/${down}, ${score.runs} not out off ${score.balls} balls in Test Survival on Gully Bhaiya Cricket. Your turn. ${gameLink()}`
+       : '';
+     this.viewport.classList.add('modal-open', 'result-open');
+     this.viewport.classList.remove('hurt-on');
+@@ -4076,7 +4076,7 @@
+     track('share-link', 'Shared the game link');
+     const url = new URL(location.pathname, location.origin).href;
+     try {
+-      if (navigator.share) { await navigator.share({ title: 'Hitman Cricket', text: 'Five overs. Three wickets. Can you beat my score?', url }); return; }
++      if (navigator.share) { await navigator.share({ title: 'Gully Bhaiya Cricket', text: 'Five overs. Three wickets. Can you beat my score?', url }); return; }
+       await navigator.clipboard.writeText(url);
+       this.$('share-status').textContent = 'Game link copied. Send it to your friends.';
+     } catch (error) {
+diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
+--- a/src/ui/Kit.ts	2026-10-15 09:07:23.224268900 +0530
++++ b/src/ui/Kit.ts	2026-10-15 09:07:23.608000300 +0530
+@@ -214,7 +214,7 @@
+     ? `<div class="k-road-you"><span class="k-t-tag">${standing.measure.toLocaleString('en-US')}</span></div>` : '';
+   const goal = escape(road.goal).replace(/^([\d,]+ \w+)/, '<span>$1</span>');
+   return `<section class="k-road" aria-label="Road to Hitman: ${escape(road.goal)}">
+-    <div class="k-road-head"><span class="k-road-title">ROAD TO HITMAN</span><p class="k-road-goal">${goal}</p></div>
++    <div class="k-road-head"><span class="k-road-title">ROAD TO LEGEND</span><p class="k-road-goal">${goal}</p></div>
+     <div class="k-road-track" style="--at:${road.position.toFixed(4)}">
+       <span class="k-road-line"></span><span class="k-road-fill"></span>${rungs}${pin}
+     </div>
+diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
+--- a/src/ui/KitGallery.ts	2026-10-15 09:07:23.216745700 +0530
++++ b/src/ui/KitGallery.ts	2026-10-15 09:07:23.494464000 +0530
+@@ -99,7 +99,7 @@
+ }
+ 
+ export function kitGallery(root: HTMLElement): void {
+-  document.title = 'UI kit · Hitman Cricket';
++  document.title = 'UI kit · Gully Bhaiya Cricket';
+   root.innerHTML = galleryMarkup();
+   // Pressing a pill opens it, and a tab or a chip takes the choice: enough to
+   // feel each one under a thumb. Nothing is kept.
+diff -ruN a/src/ui/MarathonCard.ts b/src/ui/MarathonCard.ts
+--- a/src/ui/MarathonCard.ts	2026-10-15 09:07:23.235793600 +0530
++++ b/src/ui/MarathonCard.ts	2026-10-15 09:07:23.533023100 +0530
+@@ -133,5 +133,5 @@
+ /** What the share key sends: the total, each batter's score, and the link. */
+ export function marathonShareText(total: CardTotal, batters: readonly CardBatter[], url: string): string {
+   const scores = batters.map(b => `${b.title.toLowerCase()} ${b.runs}${b.out || b.retired ? '' : '*'} (${b.balls})`).join(', ');
+-  return `${total.runs}/${total.wickets} in a Test Marathon on Hitman Cricket — ${scores}. Can you bat longer? ${url}`;
++  return `${total.runs}/${total.wickets} in a Test Marathon on Gully Bhaiya Cricket — ${scores}. Can you bat longer? ${url}`;
+ }

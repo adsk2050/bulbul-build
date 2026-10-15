@@ -45,7 +45,7 @@
   const sub = document.createElement("div");
   sub.id = "bb-sub";
   sub.innerHTML = '<span id="bb-speed">🎙️ Gully Bhaiya on Sarvam Bulbul</span>' +
-    ' · game: Hitman Cricket by ekcuttingchaidesign (github.com/ekcuttingchaidesign/Hitman-Cricket)';
+    ' · 3D game: ekcuttingchaidesign (open source)';
   (document.body ? Promise.resolve() : new Promise((r) => addEventListener("DOMContentLoaded", r))).then(() => { document.body.appendChild(box); document.body.appendChild(sub); });
   const $ = (id) => document.getElementById(id);
   let hideTimer = 0;
