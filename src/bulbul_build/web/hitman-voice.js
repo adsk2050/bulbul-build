@@ -75,6 +75,7 @@
   function audio() {
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.__bulbulNoTap = true; // the reel lays in the clean line audio itself
       bus = ac.createGain();
       bus.gain.value = 1.4;
       bus.connect(ac.destination);
@@ -109,7 +110,7 @@
       playingId = m.id;
       showLine(m.text);
     } else if (m.type === "skip") {
-      reel && reel.lineEnd(m.id);
+      reel && reel.skip(m.id);
       answeredId = Math.max(answeredId, m.id);
       if (m.id === playingId) stopAll();
     } else if (m.type === "line_end") {
@@ -128,6 +129,8 @@
 
   function onPcm(buf) {
     const id = new DataView(buf).getUint32(0, true);
+    // The reel keeps every line's audio whole, played live or not.
+    if (window.bulbulReel) window.bulbulReel.pcm(id, new Int16Array(buf.slice(4)));
     if (id !== playingId || !ac) return;
     const fresh = new Int16Array(buf, 4);
     const all = new Int16Array(carry.length + fresh.length);
@@ -142,7 +145,10 @@
     src.connect(bus);
     const at = Math.max(ac.currentTime + 0.01, playAt);
     src.start(at);
-    if (!firstAudioAt.has(id)) firstAudioAt.set(id, performance.now() + (at - ac.currentTime) * 1000);
+    if (!firstAudioAt.has(id)) {
+      firstAudioAt.set(id, performance.now() + (at - ac.currentTime) * 1000);
+      if (window.bulbulReel) window.bulbulReel.heard(id, firstAudioAt.get(id));
+    }
     playAt = at + b.duration;
     sources.push({ id, src });
   }
