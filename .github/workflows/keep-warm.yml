@@ -1,5 +1,7 @@
 # Render's free service sleeps after 15 idle minutes and takes ~1 min to wake.
 # A visit every 10 minutes keeps it awake (one service fits Render's 750 free hours).
+# If the site does not answer, the owner's phone gets a push (ntfy, secret NTFY_TOPIC):
+# a server that is down cannot report itself.
 name: keep-warm
 on:
   schedule:
@@ -8,6 +10,20 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
-      - run: curl -fsS -o /dev/null --max-time 90 https://bulbul-flash.onrender.com/bulbul-flash/ || true
+      - name: Visit the site, alert if it is down
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          url=https://bulbul-flash.onrender.com/bulbul-flash/
+          for attempt in 1 2; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$url" || echo 000)
+            [ "$code" = 200 ] && exit 0
+            sleep 20
+          done
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl -s -H "Title: Bulbul Build is DOWN" -H "Tags: rotating_light" -H "Priority: urgent" \
+              -d "The site answered $code twice in a row: $url" "https://ntfy.sh/$NTFY_TOPIC"
+          fi
+          exit 1
