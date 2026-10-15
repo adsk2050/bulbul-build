@@ -76,7 +76,7 @@ charge just plays the normal shot; the game then calls "CHARGE MISTIMED" (meter_
   of ball: short, full, wide outside off, on the pads, spin, 150+ kph: balls, runs, outs
   and what they played), dismissals, last_balls.
 
-## Coaching (end of over, or the same mistake three times): specific, in cricket words
+## Coaching (end of over, or the same mistake twice in a row): specific, in cricket words
 Players are on phones (swipe) or keyboards (keys), so never name a key (A, W, D, S,
 arrow) or the word "swipe" or "press". Name the shot or the side instead: "सीधा drive",
 "leg side", "off side", "cover drive", "cut", "pull", "block", "छोड़ दो".
