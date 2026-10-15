@@ -70,7 +70,7 @@ Never repeat a line, a joke or an opening word you already used below; vary the 
 Only describe what the event data says happened; never invent a shot, fielder or result.
 Never say milliseconds or a timing number; say it in words ("थोड़ा जल्दी", "बहुत जल्दी",
 "एकदम late", "perfect timing").
-When the score data has the player's name, use it: it makes the line about them.
+When the score data has the player's name you may use it once in that line, no more.
 Otherwise say "भाई", "हीरो", "batsman" or nothing.
 
 Write Hindi words in Devanagari and English words in Latin. Numbers as digits.
@@ -87,7 +87,7 @@ KIND_HINT = {
     "end": "Match over: call the last ball (detail.last_ball) and the verdict, win or lose, with a cheeky line to make them play again.",
 }
 WORDS = {"over": 22, "end": 22, "start": 20}
-NAME_GAP = 2  # lines that must pass before the name is offered again
+NAME_GAP = 3  # lines that must pass before the name is used again
 
 
 # A different angle each line, so the commentary does not settle into one pattern.
@@ -105,22 +105,62 @@ class Line(BaseModel):
     line: str = Field(max_length=300)
 
 
+def batter_name(event: dict) -> str:
+    return str((event.get("state") or {}).get("batter") or "").strip()
+
+
+def name_allowed(name: str, said: list[str]) -> bool:
+    """The name may go in this line: none of the last NAME_GAP lines used it."""
+    return bool(name) and not any(name.lower() in s.lower() for s in said[-NAME_GAP:])
+
+
+def _name_re(name: str) -> re.Pattern:
+    return re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
+
+
+def limit_name(text: str, name: str, allowed: bool) -> str:
+    """At most one use of the name, and none when it is not allowed.
+
+    An extra name used as a call-out ("Anmol, ...") is dropped; any other becomes
+    भाई, or "batsman" when the line already says भाई.
+    """
+    if not name:
+        return text
+    pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)(\s*,\s*)?", re.IGNORECASE)
+    kept = False
+
+    def swap(m: re.Match) -> str:
+        nonlocal kept
+        if allowed and not kept:
+            kept = True
+            return m.group(0)
+        if m.group(1):
+            return ""
+        return "batsman" if re.search(r"भाई|bhai", text, re.IGNORECASE) else "भाई"
+
+    out = pattern.sub(swap, text).strip()
+    return out[:1].upper() + out[1:] if out else out
+
+
 def prompt(event: dict, said: list[str]) -> str:
     kind = event.get("kind", "hit")
     state = dict(event.get("state") or {})
-    # The model put the player's name in nearly every line (10 of 12 in one match).
-    # It only sees the name when none of the last few lines used it.
-    name = str(state.get("batter") or "").strip()
-    if name and any(name.lower() in s.lower() for s in said[-NAME_GAP:]):
+    # The model put the player's name in nearly every line (17 of 18 in one match).
+    # It only sees the name when none of the last few lines used it, and then not
+    # even in its own past lines, which it copied the name from.
+    name = batter_name(event)
+    history = said[-6:]
+    if name and not name_allowed(name, said):
         state.pop("batter")
+        history = [_name_re(name).sub("भाई", s) for s in history]
     parts = [
         f"Event: {KIND_HINT.get(kind, kind)}",
         f"Detail: {json.dumps(event.get('detail') or {}, ensure_ascii=False)}",
         f"Score: {json.dumps(state, ensure_ascii=False)}",
         f"Player habits: {json.dumps(event.get('player') or {}, ensure_ascii=False)}",
     ]
-    if said:
-        parts.append("Already said: " + " | ".join(said[-6:]))
+    if history:
+        parts.append("Already said: " + " | ".join(history))
     return "\n".join(parts)
 
 
@@ -216,7 +256,8 @@ class Commentary:
                 system, prompt(event, self.said), Line,
                 mode=MODE, max_tokens=120, temperature=1.0, reasoning=None,
             )
-            text = reply.line.strip()
+            name = batter_name(event)
+            text = limit_name(reply.line.strip(), name, name_allowed(name, self.said))
         except SarvamError as e:
             log.warning("commentary LLM failed: %s", e)
             text = ""

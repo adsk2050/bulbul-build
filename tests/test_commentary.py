@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from bulbul_build.commentary import Commentary, Line, line_ok, prompt
+from bulbul_build.commentary import Commentary, Line, limit_name, line_ok, name_allowed, prompt
 
 
 class FakeWS:
@@ -75,10 +75,21 @@ def test_prompt_carries_score_and_habits():
 
 def test_name_is_withheld_after_a_recent_use():
     event = {"kind": "hit", "state": {"batter": "Anmol", "runs": 4}}
-    assert '"batter": "Anmol"' in prompt(event, ["चौका!", "बढ़िया"])
+    assert '"batter": "Anmol"' in prompt(event, ["चौका!", "बढ़िया", "छक्का!"])
     p = prompt(event, ["क्या shot, anmol!", "चौका!"])
-    assert "Anmol" not in p.split("Already said")[0] and '"runs": 4' in p
+    # Not in the score, and not in its own past lines either (it copied it from there).
+    assert "anmol" not in p.lower() and '"runs": 4' in p
     assert event["state"]["batter"] == "Anmol"  # the caller's event is untouched
+
+
+def test_name_at_most_once_and_never_back_to_back():
+    assert limit_name("Anmol, ये क्या, Anmol bowled!", "Anmol", True) == "Anmol, ये क्या, भाई bowled!"
+    assert limit_name("Anmol bowled!", "Anmol", False) == "भाई bowled!"
+    assert limit_name("Anmol, early! dot", "Anmol", False) == "Early! dot"  # a call-out is dropped
+    assert limit_name("भाई, stumps में, Anmol bowled!", "Anmol", False) == "भाई, stumps में, batsman bowled!"
+    assert limit_name("Anmolji का shot", "Anmol", False) == "Anmolji का shot"  # whole words only
+    assert not name_allowed("Anmol", ["Anmol, चौका!", "dot", "dot"])
+    assert name_allowed("Anmol", ["Anmol, चौका!", "dot", "dot", "dot"])
 
 
 def test_end_line_is_never_cancelled():
