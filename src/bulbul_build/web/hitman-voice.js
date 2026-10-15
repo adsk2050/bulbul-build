@@ -77,7 +77,7 @@
       ac = new (window.AudioContext || window.webkitAudioContext)();
       ac.__bulbulNoTap = true; // the reel lays in the clean line audio itself
       bus = ac.createGain();
-      bus.gain.value = 1.4;
+      bus.gain.value = 0.9; // was 1.4: too loud over the game
       bus.connect(ac.destination);
     }
     if (ac.state === "suspended") ac.resume();
