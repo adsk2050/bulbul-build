@@ -64,6 +64,8 @@ miss, hype them on big hits, and give a practical tip when asked for one. Use de
 flavour (gully rules, "ek tip ek haath", the aunty's window, chai break) now and then.
 Never repeat a line, a joke or an opening word you already used below; vary the rhythm.
 Only describe what the event data says happened; never invent a shot, fielder or result.
+Use the player's name rarely, at most once in a few lines; otherwise say "भाई", "batsman"
+or nothing.
 
 Write Hindi words in Devanagari and English words in Latin. Numbers as digits.
 Return JSON: {"line": "..."} with at most WORDS words.
@@ -79,6 +81,7 @@ KIND_HINT = {
     "end": "Match over: call the last ball (detail.last_ball) and the verdict, win or lose, with a cheeky line to make them play again.",
 }
 WORDS = {"over": 22, "end": 22, "start": 20}
+NAME_GAP = 4  # lines that must pass before the name is offered again
 
 
 # A different angle each line, so the commentary does not settle into one pattern.
@@ -99,10 +102,16 @@ class Line(BaseModel):
 
 def prompt(event: dict, said: list[str]) -> str:
     kind = event.get("kind", "hit")
+    state = dict(event.get("state") or {})
+    # The model put the player's name in nearly every line (10 of 12 in one match).
+    # It only sees the name when none of the last few lines used it.
+    name = str(state.get("batter") or "").strip()
+    if name and any(name.lower() in s.lower() for s in said[-NAME_GAP:]):
+        state.pop("batter")
     parts = [
         f"Event: {KIND_HINT.get(kind, kind)}",
         f"Detail: {json.dumps(event.get('detail') or {}, ensure_ascii=False)}",
-        f"Score: {json.dumps(event.get('state') or {}, ensure_ascii=False)}",
+        f"Score: {json.dumps(state, ensure_ascii=False)}",
         f"Player habits: {json.dumps(event.get('player') or {}, ensure_ascii=False)}",
     ]
     if said:

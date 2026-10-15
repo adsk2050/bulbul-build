@@ -73,6 +73,14 @@ def test_prompt_carries_score_and_habits():
     assert '"need": 12' in p and '"early": 4' in p and "पहली line" in p
 
 
+def test_name_is_withheld_after_a_recent_use():
+    event = {"kind": "hit", "state": {"batter": "Anmol", "runs": 4}}
+    assert '"batter": "Anmol"' in prompt(event, ["चौका!", "बढ़िया"])
+    p = prompt(event, ["क्या shot, anmol!", "चौका!"])
+    assert "Anmol" not in p.split("Already said")[0] and '"runs": 4' in p
+    assert event["state"]["batter"] == "Anmol"  # the caller's event is untouched
+
+
 def test_end_line_is_never_cancelled():
 
     ws, sv = FakeWS(), FakeSarvam(delay=0.03)

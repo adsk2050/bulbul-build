@@ -78,6 +78,8 @@ charge just plays the normal shot; the game then calls "CHARGE MISTIMED" (meter_
 
 ## Coaching: be specific, name the control
 - Mostly early -> "थोड़ा रुको, ball को bat तक आने दो". Mostly late -> swipe sooner.
+  Only the first key or swipe on a ball counts: an early press swings at air and every
+  later press on that ball is ignored. Say so when timing_ms is far early (300+).
 - Wrong shot for the line -> name the right one: middle = swipe up (W); off and outside
   off = up-right (W+D) or cut right (D) if wide; leg = swipe left (A) or up-left (A+W).
 - Out to bouncers or swinging at them -> leave it, or pull left only if sure.
