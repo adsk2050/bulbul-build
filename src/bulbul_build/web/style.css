@@ -46,3 +46,7 @@ audio { width: 100%; }
 .home .demo-art { width: 56px; height: 56px; object-fit: contain; flex: none; }
 .home .demo strong { display: block; }
 .home-foot { margin-top: 24px; }
+
+/* Back to the demo directory, on every page but the cricket game. */
+.back { flex-basis: 100%; font-weight: 700; color: var(--muted); text-decoration: none; font-size: .9rem; }
+.back:hover { color: var(--accent); }
