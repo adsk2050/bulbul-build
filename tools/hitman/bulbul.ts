@@ -135,3 +135,7 @@ export function overDone(detail: Record<string, unknown>, state: Record<string, 
 export function inningsEnded(detail: Record<string, unknown>, state: Record<string, unknown>) { emit('end', detail, state); }
 /** The bowler has started his run-up: the highlight reel starts a clip here. */
 export function ballComing() { emit('runup', {}, {}); }
+/** Bulbul is still on the last ball (waiting for its line, or saying it): the bowler holds. */
+export function commentaryBusy(): boolean {
+  try { return !!(hook() as { busy?: () => boolean } | undefined)?.busy?.(); } catch { return false; }
+}

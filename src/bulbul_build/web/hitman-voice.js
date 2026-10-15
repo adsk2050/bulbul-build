@@ -304,5 +304,7 @@
       send(kind, detail, state);
     },
     habits: player,
+    // The game holds the next ball while this is true, so a line is not cut short.
+    busy: () => busy() || !!held,
   };
 })();

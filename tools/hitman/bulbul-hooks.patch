@@ -1,6 +1,6 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 11:00:23.630626500 +0530
-+++ b/index.html	2026-10-15 11:00:23.872353600 +0530
+--- a/index.html	2026-10-15 11:56:25.192069200 +0530
++++ b/index.html	2026-10-15 11:56:28.545525800 +0530
 @@ -1,27 +1,49 @@
 -<!doctype html>
 -<html lang="en">
@@ -79,13 +79,13 @@ diff -ruN a/index.html b/index.html
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 11:00:23.633626800 +0530
-+++ b/src/Game.ts	2026-10-15 11:00:24.081572000 +0530
+--- a/src/Game.ts	2026-10-15 11:56:25.394228100 +0530
++++ b/src/Game.ts	2026-10-15 11:57:11.352039700 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
  import { Confidence, landedSpecial, pulledBouncer } from './game/Confidence';
-+import { ballComing as bulbulRunup, ballPlayed as bulbulBall, inningsEnded as bulbulEnd, inningsStarted as bulbulStart, overDone as bulbulOver } from './game/bulbul';
++import { commentaryBusy as bulbulBusy, ballComing as bulbulRunup, ballPlayed as bulbulBall, inningsEnded as bulbulEnd, inningsStarted as bulbulStart, overDone as bulbulOver } from './game/bulbul';
  import { Health } from './game/Health';
  import { TAILENDER, endingOf, resolveSurvive, resultOf, sledgeDue, teamScore } from './game/Survive';
  import { EASE, easeFor, easedSkill, easedWindows, notePlayed, playedIn, seedPlayed } from './game/newcomer';
@@ -107,7 +107,16 @@ diff -ruN a/src/Game.ts b/src/Game.ts
  import type { StoriesWhere } from './ui/WhatsNew';
  import { climbedTo, standingOf, tierMeasure, TIERS, type Granted } from './game/tier';
  import { LevelUp } from './ui/LevelUp';
-@@ -578,7 +581,7 @@
+@@ -232,6 +235,8 @@
+ 
+ /** The longest the bowler waits past `readyMs` for the field to be back on its marks. */
+ const FIELD_WAIT_MS = 6000;
++/** Bulbul build: the longest the bowler waits past `readyMs` for Bulbul to finish the last ball's line. */
++const BULBUL_WAIT_MS = 4000;
+ 
+ export class Game {
+   private phase: GamePhase = 'START';
+@@ -578,7 +583,7 @@
        () => this.charged,
        // A left-hander's swipes and side keys, read the way his mirrored
        // screen shows them. Asked of the scene, so the two cannot disagree.
@@ -116,7 +125,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // The play key opens the picker rather than an innings — unless a link has
      // already named the mode, in which case it is that mode's play key.
      this.hud.on('start', this.play);
-@@ -770,13 +773,15 @@
+@@ -770,13 +775,15 @@
      // A bundle built survive-only plays one innings and offers no way out of
      // it — that is the whole of what makes it publishable somewhere with no
      // board behind it. A `?mode=` link does the same thing at runtime.
@@ -134,7 +143,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      } else {
        // The picker opens whenever there is something to pick. Challenging a
        // friend is always on offer, so from here that is always — where before,
-@@ -1746,7 +1751,18 @@
+@@ -1746,7 +1753,18 @@
      this.setPhase('READY');
      (document.activeElement as HTMLElement | null)?.blur();
      if (this.marathoning) this.introduce(); else this.teachShots();
@@ -153,7 +162,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    /**
     * The Marathon's rules, the first two times one starts: the bowler waits at
     * his mark until the last card is put away, the way he waits for a banner.
-@@ -2056,6 +2072,19 @@
+@@ -2056,6 +2074,19 @@
      this.hud.levelBanner(banner, over + 1, LEVEL_BANNER_MS);
      this.bannerUntil = this.elapsed + LEVEL_BANNER_MS;
    }
@@ -173,7 +182,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    private shoot = (shot: ShotType, inputTimeMs: number) => {
      if (this.phase !== 'BALL_IN_FLIGHT' || this.attempt) return;
      // The first swing of the session, tutorial or not: a player who never plays
-@@ -2241,7 +2270,8 @@
+@@ -2241,7 +2272,8 @@
     */
    private play = () => {
      const go = () => (this.locked ? this.walkOut() : this.modes());
@@ -183,7 +192,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      markWhatsNewShown();
      this.showStories('intro', go);
    };
-@@ -2308,6 +2338,8 @@
+@@ -2308,6 +2340,8 @@
     * of the count as it is left out of the career, and a demo room is nobody's.
     */
    private rateThisInnings() {
@@ -192,7 +201,17 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      if (this.practising || this.demoing) return;
      const mode: RatedMode = this.challenge.playing ? 'rivals' : this.careerMode;
      const memory = counted(readMemory(), mode);
-@@ -3071,6 +3103,7 @@
+@@ -3045,7 +3079,8 @@
+     // The bowler waits for the field to be back on its marks — a catcher
+     // jogging back from deep midwicket, the man who chased one to the rope —
+     // and no longer than a few seconds past the usual wait, whatever happens.
+-    if (this.phase === 'READY' && age >= this.readyMs && this.elapsed >= this.bannerUntil && (this.scene.fieldSettled || age >= this.readyMs + FIELD_WAIT_MS)) {
++    if (this.phase === 'READY' && age >= this.readyMs && this.elapsed >= this.bannerUntil && (this.scene.fieldSettled || age >= this.readyMs + FIELD_WAIT_MS)
++        && (this.lesson >= 0 || age >= this.readyMs + BULBUL_WAIT_MS || !bulbulBusy())) {
+       this.delivery = this.lesson >= 0 ? tutorialDelivery(TUTORIAL[this.lesson], this.elapsed + GAME.runupMs)
+         : this.chargeable(this.generator.next(this.elapsed + GAME.runupMs));
+       this.attempt = null; this.outcome = null; this.bounced = false; this.specials = []; this.primed = null; this.chargeBall = false;
+@@ -3071,6 +3106,7 @@
        this.scene.express(!!this.delivery.express);
        this.scene.round(!!this.delivery.round);
        this.showConfidence(); this.setPhase('BOWLER_RUNUP');
@@ -200,7 +219,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
        // The stands lift as he runs in, and settle once the ball has gone.
        this.audio.swellCrowd(1 + RUNUP.swell, GAME.runupMs / 1000, RUNUP.settle, 0, GAME.runupMs / 3000);
      } else if (this.phase === 'BOWLER_RUNUP') {
-@@ -3102,7 +3135,8 @@
+@@ -3102,7 +3138,8 @@
          else if (this.momentAsked) { this.celebrate(this.momentAsked, true); this.momentAsked = null; }
          // After the call, not over it: the sledge is what comes back from the
          // field once the ball is dead.
@@ -210,7 +229,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
        }
      } else if (this.phase === 'RESULT' && age >= this.resultMs) {
        this.celebrating = 0; this.afterBallUntil = -Infinity;
-@@ -3120,6 +3154,7 @@
+@@ -3120,6 +3157,7 @@
    }
    private resolve() {
      const step = this.lesson >= 0 ? TUTORIAL[this.lesson] : null;
@@ -218,7 +237,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      this.outcome = step ? tutorialOutcome(step, this.delivery!, this.attempt)
        : this.marathon ? this.marathonBall()
        : this.surviving ? resolveSurvive(this.delivery!, this.attempt, this.rng, easedSkill(TAILENDER, this.ease))
-@@ -3179,6 +3214,20 @@
+@@ -3179,6 +3217,20 @@
      this.resultPresented = false; this.contactPlayed = false;
      this.setPhase('SHOT_RESOLVE');
      if (this.outcome.aerial) this.hud.airborne();
@@ -239,7 +258,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    }
    /**
     * The wait, moved on by the ball just played. With the score, not after
-@@ -3977,6 +4026,11 @@
+@@ -3977,6 +4029,11 @@
  
    private end() {
      this.setPhase('INNINGS_END');
@@ -252,8 +271,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 11:00:23.706217000 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 11:00:24.039603700 +0530
+--- a/src/game/InputManager.ts	2026-10-15 11:56:25.614687600 +0530
++++ b/src/game/InputManager.ts	2026-10-15 11:56:28.619170000 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -321,8 +340,8 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
    }
    flush(time: number) {
 diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
---- a/src/game/KeyImage.ts	2026-10-15 11:00:23.665887200 +0530
-+++ b/src/game/KeyImage.ts	2026-10-15 11:00:24.071951300 +0530
+--- a/src/game/KeyImage.ts	2026-10-15 11:56:25.795529500 +0530
++++ b/src/game/KeyImage.ts	2026-10-15 11:56:28.642579500 +0530
 @@ -98,7 +98,7 @@
    ctx.fillStyle = '#ffffffcc';
    ctx.font = `800 26px ${FAMILY}`;
@@ -333,8 +352,8 @@ diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
  
    ctx.fillStyle = '#ffffffa8';
 diff -ruN a/src/game/Share.ts b/src/game/Share.ts
---- a/src/game/Share.ts	2026-10-15 11:00:23.683441600 +0530
-+++ b/src/game/Share.ts	2026-10-15 11:00:24.070951500 +0530
+--- a/src/game/Share.ts	2026-10-15 11:56:25.958260100 +0530
++++ b/src/game/Share.ts	2026-10-15 11:56:28.647976400 +0530
 @@ -1,13 +1,13 @@
  /** The link a friend follows: this game, without whatever seed or debug flag is on. */
  export const gameLink = () => new URL(location.pathname, location.origin).href;
@@ -378,8 +397,8 @@ diff -ruN a/src/game/Share.ts b/src/game/Share.ts
  
  export const keyWhatsappLink = (name: string, code: string, url: string) =>
 diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
---- a/src/game/StatsCard.ts	2026-10-15 11:00:23.684440300 +0530
-+++ b/src/game/StatsCard.ts	2026-10-15 11:00:24.076467900 +0530
+--- a/src/game/StatsCard.ts	2026-10-15 11:56:26.141101000 +0530
++++ b/src/game/StatsCard.ts	2026-10-15 11:56:28.668775300 +0530
 @@ -792,7 +792,7 @@
    // long one is set smaller, and past that cut short.
    ctx.font = font(700, 11.5);
@@ -399,8 +418,8 @@ diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
    ctx.fillStyle = '#ed7044';
    ctx.font = font(700, 12);
 diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
---- a/src/game/challenge-api.ts	2026-10-15 11:00:23.707223500 +0530
-+++ b/src/game/challenge-api.ts	2026-10-15 11:00:24.041604900 +0530
+--- a/src/game/challenge-api.ts	2026-10-15 11:56:26.304192300 +0530
++++ b/src/game/challenge-api.ts	2026-10-15 11:56:28.702008400 +0530
 @@ -220,11 +220,11 @@
  export const copy = {
    /** The link, before anybody has batted. */
@@ -417,8 +436,8 @@ diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
    nudge: (url: string) => `Still waiting on you. My innings is in. Yours isn't. ${url}`,
    /** A fresh room, aimed at the same person. */
 diff -ruN a/src/game/rating.ts b/src/game/rating.ts
---- a/src/game/rating.ts	2026-10-15 11:00:23.699689500 +0530
-+++ b/src/game/rating.ts	2026-10-15 11:00:24.038597500 +0530
+--- a/src/game/rating.ts	2026-10-15 11:56:26.475475800 +0530
++++ b/src/game/rating.ts	2026-10-15 11:56:28.728144400 +0530
 @@ -48,7 +48,7 @@
  
  /** What each is called on the prompt. */
@@ -429,8 +448,8 @@ diff -ruN a/src/game/rating.ts b/src/game/rating.ts
    survive: 'Test Survival',
    marathon: 'Test Marathon',
 diff -ruN a/src/game/tier.ts b/src/game/tier.ts
---- a/src/game/tier.ts	2026-10-15 11:00:23.702691600 +0530
-+++ b/src/game/tier.ts	2026-10-15 11:00:24.054030500 +0530
+--- a/src/game/tier.ts	2026-10-15 11:56:26.648929400 +0530
++++ b/src/game/tier.ts	2026-10-15 11:56:28.755650700 +0530
 @@ -239,10 +239,10 @@
    },
    {
@@ -446,8 +465,8 @@ diff -ruN a/src/game/tier.ts b/src/game/tier.ts
      // The ground is black with the faintest warmth in it rather than a dark
      // gold — gold on gold has nowhere to shine from.
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts	2026-10-15 11:00:23.633626800 +0530
-+++ b/src/main.ts	2026-10-15 11:00:23.874362100 +0530
+--- a/src/main.ts	2026-10-15 11:56:26.831319600 +0530
++++ b/src/main.ts	2026-10-15 11:56:28.784317000 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -460,8 +479,8 @@ diff -ruN a/src/main.ts b/src/main.ts
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
 diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
---- a/src/scene/CrowdCelebration.ts	2026-10-15 11:00:23.749137400 +0530
-+++ b/src/scene/CrowdCelebration.ts	2026-10-15 11:00:24.011879600 +0530
+--- a/src/scene/CrowdCelebration.ts	2026-10-15 11:56:27.015961200 +0530
++++ b/src/scene/CrowdCelebration.ts	2026-10-15 11:56:28.804642800 +0530
 @@ -19,12 +19,12 @@
  interface Reaction { ms: number; strength: number; labels: (mark: number) => string[]; priority: number }
  export const CROWD_MOMENTS: Record<CrowdMoment, Reaction> = {
@@ -480,8 +499,8 @@ diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
    triple: { ms: 5200, strength: 1, labels: () => ['300', 'TRIPLE!', '{NAME} 300*', 'LEGEND!', 'HISTORY!'], priority: 3 },
    four: { ms: 5600, strength: 1, labels: () => ['400', 'FOUR HUNDRED', '{NAME} 400*', 'LEGEND!', 'IMMORTAL'], priority: 3 },
 diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
---- a/src/scene/GameScene.ts	2026-10-15 11:00:23.755649700 +0530
-+++ b/src/scene/GameScene.ts	2026-10-15 11:00:23.975871300 +0530
+--- a/src/scene/GameScene.ts	2026-10-15 11:56:27.204013400 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 11:56:28.828266900 +0530
 @@ -996,6 +996,8 @@
    private static meetsAt(charging: boolean) {
      return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
@@ -492,8 +511,8 @@ diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
      const contact = this.flight(delivery, GameScene.meetsAt(charging));
      this.batter.swing(shot, now, contact.x, contact.y, contact.z, charging, lofted, sweeping, levelled);
 diff -ruN a/src/scene/boards.ts b/src/scene/boards.ts
---- a/src/scene/boards.ts	2026-10-15 11:00:23.754643400 +0530
-+++ b/src/scene/boards.ts	2026-10-15 11:00:24.009318200 +0530
+--- a/src/scene/boards.ts	2026-10-15 11:56:27.376407800 +0530
++++ b/src/scene/boards.ts	2026-10-15 11:56:28.860695300 +0530
 @@ -19,12 +19,13 @@
  interface Ad { bg: string; ink: string; big: string; small?: string; accent?: string }
  
@@ -515,8 +534,8 @@ diff -ruN a/src/scene/boards.ts b/src/scene/boards.ts
  
  /** Boards per sponsor round the ground. */
 diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
---- a/src/ui/Cover.ts	2026-10-15 11:00:23.739089100 +0530
-+++ b/src/ui/Cover.ts	2026-10-15 11:00:23.955710500 +0530
+--- a/src/ui/Cover.ts	2026-10-15 11:56:27.552349100 +0530
++++ b/src/ui/Cover.ts	2026-10-15 11:56:28.865303900 +0530
 @@ -23,7 +23,6 @@
  import { cta, icon } from './Kit';
  
@@ -537,8 +556,8 @@ diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
                <span class="cover-best-trophy">${icon('trophy')}</span>
                <span class="cover-best-text">${coverBoardLines(view.board)}</span>
 diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
---- a/src/ui/Feedback.ts	2026-10-15 11:00:23.728051100 +0530
-+++ b/src/ui/Feedback.ts	2026-10-15 11:00:23.966277000 +0530
+--- a/src/ui/Feedback.ts	2026-10-15 11:56:27.752786400 +0530
++++ b/src/ui/Feedback.ts	2026-10-15 11:56:28.889163600 +0530
 @@ -16,7 +16,7 @@
  /** The thank-you's tick in its green disc (Figma 133:12946). */
  const DONE_TICK = '<svg class="feedback-tick" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect width="64" height="64" rx="32" fill="#5BD08F" fill-opacity=".16"/><path d="M21 32 29 40 43 24" stroke="#5BD08F" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -558,8 +577,8 @@ diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
        </div>`;
      const done = document.getElementById('feedback-done');
 diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
---- a/src/ui/HUD.ts	2026-10-15 11:00:23.727044000 +0530
-+++ b/src/ui/HUD.ts	2026-10-15 11:00:23.957717000 +0530
+--- a/src/ui/HUD.ts	2026-10-15 11:56:27.940215600 +0530
++++ b/src/ui/HUD.ts	2026-10-15 11:56:28.918765900 +0530
 @@ -334,7 +334,7 @@
          -->
          <div class="score-bug">
@@ -597,8 +616,8 @@ diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
        this.$('share-status').textContent = 'Game link copied. Send it to your friends.';
      } catch (error) {
 diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
---- a/src/ui/Kit.ts	2026-10-15 11:00:23.732060200 +0530
-+++ b/src/ui/Kit.ts	2026-10-15 11:00:23.961771100 +0530
+--- a/src/ui/Kit.ts	2026-10-15 11:56:28.119672400 +0530
++++ b/src/ui/Kit.ts	2026-10-15 11:56:28.981592000 +0530
 @@ -214,7 +214,7 @@
      ? `<div class="k-road-you"><span class="k-t-tag">${standing.measure.toLocaleString('en-US')}</span></div>` : '';
    const goal = escape(road.goal).replace(/^([\d,]+ \w+)/, '<span>$1</span>');
@@ -609,8 +628,8 @@ diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
        <span class="k-road-line"></span><span class="k-road-fill"></span>${rungs}${pin}
      </div>
 diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
---- a/src/ui/KitGallery.ts	2026-10-15 11:00:23.723020600 +0530
-+++ b/src/ui/KitGallery.ts	2026-10-15 11:00:23.953388900 +0530
+--- a/src/ui/KitGallery.ts	2026-10-15 11:56:28.284742800 +0530
++++ b/src/ui/KitGallery.ts	2026-10-15 11:56:29.009284100 +0530
 @@ -99,7 +99,7 @@
  }
  
@@ -621,8 +640,8 @@ diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
    // Pressing a pill opens it, and a tab or a chip takes the choice: enough to
    // feel each one under a thumb. Nothing is kept.
 diff -ruN a/src/ui/MarathonCard.ts b/src/ui/MarathonCard.ts
---- a/src/ui/MarathonCard.ts	2026-10-15 11:00:23.743616900 +0530
-+++ b/src/ui/MarathonCard.ts	2026-10-15 11:00:23.956716600 +0530
+--- a/src/ui/MarathonCard.ts	2026-10-15 11:56:28.469378100 +0530
++++ b/src/ui/MarathonCard.ts	2026-10-15 11:56:29.036173700 +0530
 @@ -133,5 +133,5 @@
  /** What the share key sends: the total, each batter's score, and the link. */
  export function marathonShareText(total: CardTotal, batters: readonly CardBatter[], url: string): string {
