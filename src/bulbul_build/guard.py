@@ -18,7 +18,9 @@ class RateLimiter:
         if self.trust_proxy:
             fwd = request.headers.get("x-forwarded-for")
             if fwd:
-                return fwd.split(",")[0].strip()
+                # The rightmost entry is the one our proxy added; anything to its
+                # left came from the client and can be made up.
+                return fwd.split(",")[-1].strip()
         return request.client.host if request.client else "unknown"
 
     def allow(self, ip: str) -> bool:
@@ -27,6 +29,25 @@ class RateLimiter:
         while q and now - q[0] > 60:
             q.popleft()
         if len(q) >= self.per_min:
+            return False
+        q.append(now)
+        return True
+
+
+class LineQuota:
+    """Paid commentary lines per IP per hour, so one visitor (or one script)
+    cannot spend the whole day's budget that everybody shares."""
+
+    def __init__(self, per_hour: int):
+        self.per_hour = per_hour
+        self._lines: dict[str, deque[float]] = defaultdict(deque)
+
+    def take(self, ip: str) -> bool:
+        now = time.monotonic()
+        q = self._lines[ip]
+        while q and now - q[0] > 3600:
+            q.popleft()
+        if len(q) >= self.per_hour:
             return False
         q.append(now)
         return True

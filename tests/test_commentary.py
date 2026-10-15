@@ -6,6 +6,7 @@ import asyncio
 import json
 
 from bulbul_build.commentary import Commentary, Line, limit_name, line_ok, name_allowed, prompt
+from bulbul_build.guard import LineQuota, RateLimiter
 
 
 class FakeWS:
@@ -106,3 +107,42 @@ def test_end_line_is_never_cancelled():
     asyncio.run(go())
     lines = [m["id"] for m in ws.sent if isinstance(m, dict) and m["type"] == "line"]
     assert lines == [1]
+
+
+def test_ball_lines_are_spaced_out_on_one_connection():
+    ws, sv = FakeWS(), FakeSarvam()
+    c = Commentary(ws, sv)
+
+    async def go():
+        for i in range(5):  # a script firing balls back to back
+            await c.on_event({"id": i, "kind": "hit"})
+            await c.current
+
+    asyncio.run(go())
+    assert sv.calls == 1  # the rest came within MIN_GAP_S
+
+
+def test_hourly_quota_per_ip_is_shared_across_connections():
+    quota, sv = LineQuota(per_hour=2), FakeSarvam()
+    sent = []
+
+    async def go():
+        for i in range(3):  # three connections from one IP, one start line each
+            ws = FakeWS()
+            c = Commentary(ws, sv, quota=quota, ip="1.2.3.4")
+            await c.on_event({"id": i, "kind": "start"})
+            await c.current
+            sent.extend(ws.sent)
+
+    asyncio.run(go())
+    assert sv.calls == 2
+    assert any(isinstance(m, dict) and m.get("type") == "error" for m in sent)
+    assert quota.take("5.6.7.8")  # another IP is unaffected
+
+
+def test_client_ip_behind_proxy_ignores_a_made_up_first_hop():
+    class Req:
+        headers = {"x-forwarded-for": "6.6.6.6, 1.2.3.4"}
+        client = None
+
+    assert RateLimiter(5, trust_proxy=True).client_ip(Req()) == "1.2.3.4"

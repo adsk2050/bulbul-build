@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from . import audio, config
 from .budget import BudgetExceeded, Caps, Ledger, cost_of
-from .guard import RateLimiter
+from .guard import LineQuota, RateLimiter
 from .modes import REGISTRY, load_all
 from .sarvam import Sarvam, SarvamError
 from .commentary import Commentary
@@ -35,6 +35,7 @@ ledger = Ledger(
     Caps(settings.daily_budget_inr, settings.total_budget_inr, settings.per_call_budget_inr),
 )
 limiter = RateLimiter(settings.per_ip_per_min, trust_proxy=os.environ.get("TRUST_PROXY") == "1")
+line_quota = LineQuota(settings.lines_per_ip_hour)
 OUT = settings.cache_dir / "out"
 UNCLE = settings.cache_dir.parent / "uncle"  # recorded fillers, scripts/make_fillers.py
 MAX_TALKERS_PER_IP = 2
@@ -144,7 +145,7 @@ async def cricket_ws(ws: WebSocket):
     await ws.accept()
     _talkers[ip] = _talkers.get(ip, 0) + 1
     try:
-        await Commentary(ws, ws.app.state.sarvam, log_path=CRICKET_LOG).run()
+        await Commentary(ws, ws.app.state.sarvam, log_path=CRICKET_LOG, quota=line_quota, ip=ip).run()
     finally:
         _talkers[ip] -= 1
 

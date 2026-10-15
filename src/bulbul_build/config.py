@@ -22,6 +22,7 @@ class Settings:
     total_budget_inr: float
     per_call_budget_inr: float
     per_ip_per_min: int
+    lines_per_ip_hour: int
     ledger_path: Path
     cache_dir: Path
 
@@ -38,6 +39,7 @@ def load() -> Settings:
         total_budget_inr=_f("TOTAL_BUDGET_INR", 50),
         per_call_budget_inr=_f("PER_CALL_BUDGET_INR", 2),
         per_ip_per_min=int(os.environ.get("PER_IP_PER_MIN", 6)),
+        lines_per_ip_hour=int(os.environ.get("LINES_PER_IP_HOUR", 40)),
         ledger_path=Path(os.environ.get("LEDGER_PATH", ROOT / "data" / "ledger.sqlite")),
         cache_dir=Path(os.environ.get("CACHE_DIR", ROOT / "data" / "cache")),
     )

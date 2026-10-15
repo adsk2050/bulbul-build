@@ -36,6 +36,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 from .budget import BudgetExceeded
+from .guard import LineQuota
 from .modes.base import script_share
 from .sarvam import Sarvam, SarvamError
 
@@ -43,6 +44,8 @@ log = logging.getLogger("bulbul.cricket")
 
 MODE = "gully-cricket"
 MAX_EVENTS = 120  # per connection; a 2-over match is ~30
+MIN_GAP_S = 2.0   # paid lines per connection at most this often; real play is a ball every 4-5 s
+QUOTA_MSG = "Bulbul ko thoda break chahiye, thodi der baad khelo!"
 VOICE = ("ratan_hi_sports", "hi-IN")
 PACE = 1.1
 
@@ -186,7 +189,8 @@ FALLBACK = {
 
 
 class Commentary:
-    def __init__(self, ws: WebSocket, sarvam: Sarvam, log_path: Path | None = None, rng: random.Random | None = None):
+    def __init__(self, ws: WebSocket, sarvam: Sarvam, log_path: Path | None = None, rng: random.Random | None = None,
+                 quota: LineQuota | None = None, ip: str = ""):
         self.ws = ws
         self.log_path = log_path
         self.rng = rng or random.Random()
@@ -199,6 +203,10 @@ class Commentary:
         self.speaking = False
         self.said: list[str] = []
         self.events = 0
+        self.quota = quota  # paid lines per IP per hour, shared by all connections
+        self.ip = ip
+        self.last_paid = -1e9
+        self.told_quota = False
 
     async def send(self, msg: dict) -> None:
         async with self.send_lock:
@@ -247,6 +255,19 @@ class Commentary:
 
     async def speak(self, eid: int, event: dict) -> None:
         kind = event.get("kind", "hit")
+        # Cost guards: a ball line no more than every MIN_GAP_S on this connection
+        # (start, over and end are one-offs; a wicket takes the mic), and the per-IP hourly quota.
+        now = time.monotonic()
+        if kind not in ("start", "over", "end", "wicket") and now - self.last_paid < MIN_GAP_S:
+            await self.send({"type": "skip", "id": eid})
+            return
+        if self.quota and not self.quota.take(self.ip):
+            if not self.told_quota:
+                self.told_quota = True
+                await self.send({"type": "error", "message": QUOTA_MSG})
+            await self.send({"type": "skip", "id": eid})
+            return
+        self.last_paid = now
         t0 = time.perf_counter()
         system = SYSTEM.replace("WORDS", str(WORDS.get(kind, 12)))
         system += "\nThis time, angle: " + self.rng.choice(ANGLES) + "."
