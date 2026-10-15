@@ -120,8 +120,12 @@ names still say `hitman`: `web/hitman/` (the built game, committed),
   empties upstream's offensive-word lists (`strip_wordlists.py`).
 - **No board server:** the game runs offline (`canRegister: false`, `BULBUL_BUILD`
   flag, CSS in the patched `index.html` hides board features).
-- **The reel** records the canvas plus game audio in the browser; Bulbul's voice
-  is laid in from the line PCM, whole. 30 s max. Free: no server calls.
+- **The reel** records each ball (canvas plus game audio) in the browser and cuts
+  every four, six and wicket into a finished segment during play, Bulbul's line
+  laid in whole from its PCM. At the end the best of the match (30 s max, last
+  ball always in) plus an end card with a synthesised sting are joined two ways
+  at once: `/api/reel` (ffmpeg, lossless copy, ~0.5 s, no re-encode ever) and a
+  browser join (plays the segments into one recording); the first to finish wins.
 
 ## Public site (Render free web service)
 

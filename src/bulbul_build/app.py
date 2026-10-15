@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -45,7 +45,7 @@ UTTERANCES = settings.cache_dir.parent / "utterances"
 # The public site serves the 3D game alone: no Talking Bulbul (paid STT) and no
 # form toys, so nothing else can spend the shared budget. Locally everything is on.
 GAME_ONLY = os.environ.get("GAME_ONLY") == "1"
-GAME_ONLY_PATHS = ("/bulbul-flash", "/static/")
+GAME_ONLY_PATHS = ("/bulbul-flash", "/static/", "/api/reel")
 CRICKET_LOG = settings.cache_dir.parent / "cricket-log.jsonl"  # each event and the line it got  # what STT heard, for comparing STT settings  # visitor lines and replies, for tuning
 
 
@@ -67,7 +67,7 @@ async def security(request: Request, call_next):
         if request.url.path == "/":
             return RedirectResponse("/bulbul-flash/", status_code=302)
         return JSONResponse({"error": "not found"}, status_code=404)
-    limit = MAX_CLIP if request.url.path == "/api/clip" else MAX_BODY
+    limit = MAX_CLIP if request.url.path in ("/api/clip", "/api/reel") else MAX_BODY
     if int(request.headers.get("content-length") or 0) > limit:
         return JSONResponse({"error": "request too large"}, status_code=413)
     resp = await call_next(request)
@@ -211,6 +211,45 @@ async def make_clip(request: Request):
     token = secrets.token_hex(12)
     (OUT / f"{token}.mp4").write_bytes(mp4)
     return {"url": f"/clip/{token}.mp4"}
+
+
+MAX_REEL_PARTS = 9  # up to 8 highlight segments and the end card
+_reel_slot = asyncio.Semaphore(1)  # one join at a time on a small CPU
+
+
+@app.post("/api/reel")
+async def join_reel(request: Request):
+    """Join the highlight segments the browser cut during the match into one MP4.
+
+    The body is the segments back to back; X-Parts lists their byte sizes in order.
+    No Sarvam call: only ffmpeg, mostly without re-encoding.
+    """
+    if not limiter.allow(limiter.client_ip(request)):
+        raise HTTPException(429, "Thoda ruko! Too many requests, try again in a minute.")
+    kind = request.headers.get("content-type", "")
+    suffix = ".mp4" if "mp4" in kind else ".webm" if "webm" in kind else None
+    if suffix is None:
+        raise HTTPException(415, "send video/webm or video/mp4")
+    try:
+        sizes = [int(x) for x in request.headers.get("x-parts", "").split(",") if x.strip()]
+    except ValueError:
+        raise HTTPException(400, "bad X-Parts") from None
+    if not 1 <= len(sizes) <= MAX_REEL_PARTS or min(sizes) <= 0:
+        raise HTTPException(400, "bad X-Parts")
+    body = await request.body()
+    if len(body) != sum(sizes) or len(body) > MAX_CLIP:
+        raise HTTPException(413, "reel too large")
+    parts, at = [], 0
+    for n in sizes:
+        parts.append(body[at:at + n])
+        at += n
+    try:
+        async with _reel_slot:
+            mp4 = await asyncio.to_thread(audio.join_mp4, parts, suffix)
+    except Exception as e:  # ffmpeg failed on a bad upload
+        log.warning("reel join failed: %s", e)
+        raise HTTPException(422, "Could not make the video.") from e
+    return Response(mp4, media_type="video/mp4")
 
 
 @app.get("/clip/{name}")

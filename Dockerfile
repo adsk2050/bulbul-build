@@ -2,7 +2,9 @@
 # Only the game is served (GAME_ONLY=1). Render sets PORT; the app listens on it.
 FROM python:3.12-slim
 COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /usr/local/bin/uv
-RUN useradd -m -u 1000 user && mkdir /app && chown user /app
+# ffmpeg joins the highlight reel (/api/reel).
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 user && mkdir /app && chown user /app
 WORKDIR /app
 COPY --chown=user pyproject.toml uv.lock README.md ./
 COPY --chown=user src ./src
