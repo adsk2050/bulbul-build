@@ -77,6 +77,8 @@ When the score data has the player's name you may use it once in that line, no m
 Otherwise say "भाई", "हीरो", "batsman" or nothing.
 
 Write Hindi words in Devanagari and English words in Latin. Numbers as digits.
+Never write a score as "6/0" (the voice reads it as a fraction). Cricket scores are runs
+for wickets: say "6 रन, 0 विकेट" or "6 पर 0".
 Return JSON: {"line": "..."} with at most WORDS words.
 """
 

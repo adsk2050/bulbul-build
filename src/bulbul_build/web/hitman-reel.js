@@ -382,6 +382,7 @@
 
   function start() {
     innings++;
+    posterImage(); // loaded by the time the end card is drawn
     if (waiting) finish(waiting);
     queue = []; spare = []; segs = []; live.clear(); balls = 0; summary = null; reel = null; lines.clear();
     renderButton();
@@ -458,17 +459,43 @@
     ctx.fillStyle = color; ctx.textAlign = "center";
     wrap(ctx, text, W - 100).forEach((l, i) => ctx.fillText(l, W / 2, y + i * size * 1.2));
   }
+  // The game's cover art, taken from the page (its file name changes every build).
+  let poster = null;
+  function posterImage() {
+    if (!poster) {
+      const src = document.querySelector(".cover-art")?.src;
+      if (src) { poster = new Image(); poster.src = src; }
+    }
+    return poster && poster.complete && poster.naturalWidth ? poster : null;
+  }
   function outroCard(ctx) {
-    backdrop(ctx);
     const s = summary || { runs: 0, wickets: 0, balls: 0, name: "" };
-    centred(ctx, "BULBUL FLASH CRICKET", 250, 40, "#ffb347");
-    if (s.name) centred(ctx, s.name, 360, 64, "#ffffff");
-    centred(ctx, `${s.runs}/${s.wickets}`, 520, 140, "#ffffff", 900);
-    centred(ctx, `${s.balls} balls`, 600, 36, "#cfe3f5", 600);
-    centred(ctx, "Live commentary", 790, 64, "#ffffff");
-    centred(ctx, "by Sarvam Bulbul Flash", 870, 44, "#ffb347");
-    centred(ctx, `Can you beat ${s.runs}?`, 1020, 56, "#ffffff");
-    centred(ctx, location.host + "/bulbul-flash", 1110, 38, "#7fd3ff", 700);
+    backdrop(ctx);
+    const img = posterImage();
+    if (img) {
+      const k = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+      ctx.drawImage(img, (W - img.naturalWidth * k) / 2, (H - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "rgba(8,16,28,.55)"); g.addColorStop(0.45, "rgba(8,16,28,.78)"); g.addColorStop(1, "rgba(8,16,28,.92)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    centred(ctx, "BULBUL FLASH CRICKET", 190, 42, "#ffc93c", 900);
+    if (s.name) centred(ctx, s.name, 300, 60, "#ffffff");
+    centred(ctx, `${s.runs}/${s.wickets}`, 450, 150, "#ffffff", 900);
+    centred(ctx, `${s.balls} balls`, 525, 34, "#cfe3f5", 600);
+    centred(ctx, `Can you beat ${s.runs}?`, 660, 58, "#ffffff");
+    // "Powered by Sarvam AI": a white badge, the one bright block on the card.
+    const bw = 520, bh = 190, bx = (W - bw) / 2, by = 770;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 28); ctx.fill();
+    ctx.textAlign = "center";
+    ctx.font = `700 26px ${FONT}`; ctx.fillStyle = "#6b7785";
+    ctx.fillText("POWERED BY", W / 2, by + 48);
+    ctx.font = `900 72px ${FONT}`; ctx.fillStyle = "#0b1a2a";
+    ctx.fillText("Sarvam AI", W / 2, by + 122);
+    ctx.font = `700 26px ${FONT}`; ctx.fillStyle = "#e0761b";
+    ctx.fillText("Live commentary · Bulbul Flash voice", W / 2, by + 165);
+    centred(ctx, location.host + "/bulbul-flash", 1100, 36, "#7fd3ff", 700);
   }
   function overlay(ctx, clip) {
     const d = clip.ball.detail || {};

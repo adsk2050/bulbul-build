@@ -1,7 +1,7 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 09:59:11.377590800 +0530
-+++ b/index.html	2026-10-15 09:59:11.715035000 +0530
-@@ -1,27 +1,41 @@
+--- a/index.html	2026-10-15 10:23:12.097122400 +0530
++++ b/index.html	2026-10-15 10:23:12.426366600 +0530
+@@ -1,27 +1,48 @@
 -<!doctype html>
 -<html lang="en">
 -  <head>
@@ -52,6 +52,13 @@ diff -ruN a/index.html b/index.html
 +        text-shadow:0 3px 0 #b5470f,0 6px 14px rgba(0,0,0,.45);transform:rotate(-4deg)}
 +      .bb-title span{display:block;font-size:min(calc(var(--u) * 52),6.2cqh);color:#ffc93c}
 +      .bb-title b{display:block;font-size:min(calc(var(--u) * 64),7.6cqh);font-weight:400}
++      /* "Powered by Sarvam AI": a slim strip just above the Play key, clear of the batter. */
++      .bb-powered{display:flex;align-items:center;justify-content:center;gap:8px;align-self:center;margin:0 auto 4px;
++        padding:6px 14px;width:max-content;background:rgba(255,255,255,.94);border-radius:999px;
++        box-shadow:0 4px 14px rgba(0,0,0,.35);font-family:var(--f-ui);line-height:1;white-space:nowrap}
++      .bb-powered span{font-size:9px;font-weight:700;letter-spacing:.14em;color:#6b7785}
++      .bb-powered b{font-size:15px;font-weight:900;color:#0b1a2a}
++      .bb-powered i{font-style:normal;font-size:10px;font-weight:700;color:#e0761b}
 +    </style>
 +    <!-- The voice calls every ball, so the game's own text call-outs are hidden during play. -->
 +    <style>#result,#phase-label,#hit-burst,#nearing,#level-banner{display:none!important}</style>
@@ -71,8 +78,8 @@ diff -ruN a/index.html b/index.html
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 09:59:11.382427600 +0530
-+++ b/src/Game.ts	2026-10-15 09:59:11.718602400 +0530
+--- a/src/Game.ts	2026-10-15 10:23:12.101124700 +0530
++++ b/src/Game.ts	2026-10-15 10:23:12.698571300 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
@@ -192,7 +199,17 @@ diff -ruN a/src/Game.ts b/src/Game.ts
        // The stands lift as he runs in, and settle once the ball has gone.
        this.audio.swellCrowd(1 + RUNUP.swell, GAME.runupMs / 1000, RUNUP.settle, 0, GAME.runupMs / 3000);
      } else if (this.phase === 'BOWLER_RUNUP') {
-@@ -3120,6 +3153,7 @@
+@@ -3102,7 +3135,8 @@
+         else if (this.momentAsked) { this.celebrate(this.momentAsked, true); this.momentAsked = null; }
+         // After the call, not over it: the sledge is what comes back from the
+         // field once the ball is dead.
+-        if (this.sledgeDue) { this.sledgeDue = false; this.audio.play('sledge'); }
++        // Bulbul build: the fielders' recorded sledge talked over the commentary.
++        if (this.sledgeDue) { this.sledgeDue = false; if (!BULBUL_BUILD) this.audio.play('sledge'); }
+       }
+     } else if (this.phase === 'RESULT' && age >= this.resultMs) {
+       this.celebrating = 0; this.afterBallUntil = -Infinity;
+@@ -3120,6 +3154,7 @@
    }
    private resolve() {
      const step = this.lesson >= 0 ? TUTORIAL[this.lesson] : null;
@@ -200,7 +217,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      this.outcome = step ? tutorialOutcome(step, this.delivery!, this.attempt)
        : this.marathon ? this.marathonBall()
        : this.surviving ? resolveSurvive(this.delivery!, this.attempt, this.rng, easedSkill(TAILENDER, this.ease))
-@@ -3179,6 +3213,20 @@
+@@ -3179,6 +3214,20 @@
      this.resultPresented = false; this.contactPlayed = false;
      this.setPhase('SHOT_RESOLVE');
      if (this.outcome.aerial) this.hud.airborne();
@@ -221,7 +238,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    }
    /**
     * The wait, moved on by the ball just played. With the score, not after
-@@ -3977,6 +4025,11 @@
+@@ -3977,6 +4026,11 @@
  
    private end() {
      this.setPhase('INNINGS_END');
@@ -234,8 +251,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 09:59:11.491988500 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 09:59:11.876025500 +0530
+--- a/src/game/InputManager.ts	2026-10-15 10:23:12.197664600 +0530
++++ b/src/game/InputManager.ts	2026-10-15 10:23:12.644555900 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -303,8 +320,8 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
    }
    flush(time: number) {
 diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
---- a/src/game/KeyImage.ts	2026-10-15 09:59:11.436702300 +0530
-+++ b/src/game/KeyImage.ts	2026-10-15 09:59:11.908605200 +0530
+--- a/src/game/KeyImage.ts	2026-10-15 10:23:12.146883800 +0530
++++ b/src/game/KeyImage.ts	2026-10-15 10:23:12.686510900 +0530
 @@ -98,7 +98,7 @@
    ctx.fillStyle = '#ffffffcc';
    ctx.font = `800 26px ${FAMILY}`;
@@ -315,8 +332,8 @@ diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
  
    ctx.fillStyle = '#ffffffa8';
 diff -ruN a/src/game/Share.ts b/src/game/Share.ts
---- a/src/game/Share.ts	2026-10-15 09:59:11.457828500 +0530
-+++ b/src/game/Share.ts	2026-10-15 09:59:11.908605200 +0530
+--- a/src/game/Share.ts	2026-10-15 10:23:12.165546500 +0530
++++ b/src/game/Share.ts	2026-10-15 10:23:12.685502400 +0530
 @@ -1,13 +1,13 @@
  /** The link a friend follows: this game, without whatever seed or debug flag is on. */
  export const gameLink = () => new URL(location.pathname, location.origin).href;
@@ -360,8 +377,8 @@ diff -ruN a/src/game/Share.ts b/src/game/Share.ts
  
  export const keyWhatsappLink = (name: string, code: string, url: string) =>
 diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
---- a/src/game/StatsCard.ts	2026-10-15 09:59:11.460830100 +0530
-+++ b/src/game/StatsCard.ts	2026-10-15 09:59:11.911605000 +0530
+--- a/src/game/StatsCard.ts	2026-10-15 10:23:12.167554600 +0530
++++ b/src/game/StatsCard.ts	2026-10-15 10:23:12.692510200 +0530
 @@ -792,7 +792,7 @@
    // long one is set smaller, and past that cut short.
    ctx.font = font(700, 11.5);
@@ -381,8 +398,8 @@ diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
    ctx.fillStyle = '#ed7044';
    ctx.font = font(700, 12);
 diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
---- a/src/game/challenge-api.ts	2026-10-15 09:59:11.492987700 +0530
-+++ b/src/game/challenge-api.ts	2026-10-15 09:59:11.878035900 +0530
+--- a/src/game/challenge-api.ts	2026-10-15 10:23:12.198665400 +0530
++++ b/src/game/challenge-api.ts	2026-10-15 10:23:12.648089600 +0530
 @@ -220,11 +220,11 @@
  export const copy = {
    /** The link, before anybody has batted. */
@@ -399,8 +416,8 @@ diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
    nudge: (url: string) => `Still waiting on you. My innings is in. Yours isn't. ${url}`,
    /** A fresh room, aimed at the same person. */
 diff -ruN a/src/game/rating.ts b/src/game/rating.ts
---- a/src/game/rating.ts	2026-10-15 09:59:11.481951200 +0530
-+++ b/src/game/rating.ts	2026-10-15 09:59:11.875014700 +0530
+--- a/src/game/rating.ts	2026-10-15 10:23:12.189121000 +0530
++++ b/src/game/rating.ts	2026-10-15 10:23:12.643194000 +0530
 @@ -48,7 +48,7 @@
  
  /** What each is called on the prompt. */
@@ -411,8 +428,8 @@ diff -ruN a/src/game/rating.ts b/src/game/rating.ts
    survive: 'Test Survival',
    marathon: 'Test Marathon',
 diff -ruN a/src/game/tier.ts b/src/game/tier.ts
---- a/src/game/tier.ts	2026-10-15 09:59:11.486470000 +0530
-+++ b/src/game/tier.ts	2026-10-15 09:59:11.890394500 +0530
+--- a/src/game/tier.ts	2026-10-15 10:23:12.193153600 +0530
++++ b/src/game/tier.ts	2026-10-15 10:23:12.666427100 +0530
 @@ -239,10 +239,10 @@
    },
    {
@@ -428,8 +445,8 @@ diff -ruN a/src/game/tier.ts b/src/game/tier.ts
      // The ground is black with the faintest warmth in it rather than a dark
      // gold — gold on gold has nowhere to shine from.
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts	2026-10-15 09:59:11.381416900 +0530
-+++ b/src/main.ts	2026-10-15 09:59:11.718602400 +0530
+--- a/src/main.ts	2026-10-15 10:23:12.101124700 +0530
++++ b/src/main.ts	2026-10-15 10:23:12.442030700 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -442,8 +459,8 @@ diff -ruN a/src/main.ts b/src/main.ts
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
 diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
---- a/src/scene/CrowdCelebration.ts	2026-10-15 09:59:11.555620000 +0530
-+++ b/src/scene/CrowdCelebration.ts	2026-10-15 09:59:11.848141100 +0530
+--- a/src/scene/CrowdCelebration.ts	2026-10-15 10:23:12.247350800 +0530
++++ b/src/scene/CrowdCelebration.ts	2026-10-15 10:23:12.601271900 +0530
 @@ -19,12 +19,12 @@
  interface Reaction { ms: number; strength: number; labels: (mark: number) => string[]; priority: number }
  export const CROWD_MOMENTS: Record<CrowdMoment, Reaction> = {
@@ -462,8 +479,8 @@ diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
    triple: { ms: 5200, strength: 1, labels: () => ['300', 'TRIPLE!', '{NAME} 300*', 'LEGEND!', 'HISTORY!'], priority: 3 },
    four: { ms: 5600, strength: 1, labels: () => ['400', 'FOUR HUNDRED', '{NAME} 400*', 'LEGEND!', 'IMMORTAL'], priority: 3 },
 diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
---- a/src/scene/GameScene.ts	2026-10-15 09:59:11.566157100 +0530
-+++ b/src/scene/GameScene.ts	2026-10-15 09:59:11.839620100 +0530
+--- a/src/scene/GameScene.ts	2026-10-15 10:23:12.256868700 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 10:23:12.595261300 +0530
 @@ -996,6 +996,8 @@
    private static meetsAt(charging: boolean) {
      return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
@@ -474,20 +491,25 @@ diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
      const contact = this.flight(delivery, GameScene.meetsAt(charging));
      this.batter.swing(shot, now, contact.x, contact.y, contact.z, charging, lofted, sweeping, levelled);
 diff -ruN a/src/scene/boards.ts b/src/scene/boards.ts
---- a/src/scene/boards.ts	2026-10-15 09:59:11.563637300 +0530
-+++ b/src/scene/boards.ts	2026-10-15 09:59:11.840619900 +0530
-@@ -19,7 +19,7 @@
+--- a/src/scene/boards.ts	2026-10-15 10:23:12.255863000 +0530
++++ b/src/scene/boards.ts	2026-10-15 10:23:12.599273700 +0530
+@@ -19,9 +19,10 @@
  interface Ad { bg: string; ink: string; big: string; small?: string; accent?: string }
  
  const ADS: Ad[] = [
 -  { bg: '#16304a', ink: '#ffffff', big: 'HITMAN CRICKET', accent: '#8fd3ff' },
+-  { bg: '#1f5fd6', ink: '#ffffff', big: 'COVER DRIVE', small: 'MOTORS' },
+-  { bg: '#3b1f6e', ink: '#ffd23f', big: 'GOLDEN DUCK', small: 'INSURANCE' },
 +  { bg: '#16304a', ink: '#ffffff', big: 'BULBUL FLASH', accent: '#8fd3ff' },
-   { bg: '#1f5fd6', ink: '#ffffff', big: 'COVER DRIVE', small: 'MOTORS' },
-   { bg: '#3b1f6e', ink: '#ffd23f', big: 'GOLDEN DUCK', small: 'INSURANCE' },
++  // Bulbul build: the commentary runs on Sarvam AI, so it gets the boards.
++  { bg: '#111418', ink: '#ffffff', big: 'SARVAM AI', small: 'sarvam.ai', accent: '#ffb347' },
++  { bg: '#1f5fd6', ink: '#ffffff', big: 'SARVAM', small: 'BULBUL FLASH' },
    { bg: '#f4f6f8', ink: '#16304a', big: 'SILLY POINT', small: 'PAINTS', accent: '#1f9d8b' },
+   { bg: '#0e7c7b', ink: '#ffffff', big: 'BOUNDARY BANK', accent: '#b8f0e6' },
+   { bg: '#111418', ink: '#b8f24a', big: 'NIGHTWATCH', small: 'SECURITY' },
 diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
---- a/src/ui/Cover.ts	2026-10-15 09:59:11.541079100 +0530
-+++ b/src/ui/Cover.ts	2026-10-15 09:59:11.811479100 +0530
+--- a/src/ui/Cover.ts	2026-10-15 10:23:12.230778400 +0530
++++ b/src/ui/Cover.ts	2026-10-15 10:23:12.572658500 +0530
 @@ -23,7 +23,6 @@
  import { cta, icon } from './Kit';
  
@@ -496,18 +518,20 @@ diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
  const BEAM_LEFT = new URL('../assets/entry/beam-left.svg', import.meta.url).href;
  const BEAM_RIGHT = new URL('../assets/entry/beam-right.svg', import.meta.url).href;
  const FLASH = new URL('../assets/entry/flash.svg', import.meta.url).href;
-@@ -175,7 +174,7 @@
+@@ -175,8 +174,9 @@
              ${motion()}
            </div>
            <div class="cover-top">${profileChip(view.player)}</div>
 -          <div class="cover-title-wrap"><img class="cover-title" src="${TITLE}" alt="Hitman Cricket" decoding="async"><span class="cover-shine" aria-hidden="true"></span></div>
 +          <div class="cover-title-wrap"><h1 class="cover-title bb-title" aria-label="Bulbul Flash Cricket"><span>BULBUL FLASH</span><b>CRICKET</b></h1><span class="cover-shine" aria-hidden="true"></span></div>
            <div class="cover-actions">
++            <div class="bb-powered" aria-label="Powered by Sarvam AI, Bulbul Flash voice"><span>POWERED BY</span><b>Sarvam AI</b><i>Bulbul Flash voice</i></div>
              <button id="cover-board" type="button" class="cover-best">
                <span class="cover-best-trophy">${icon('trophy')}</span>
+               <span class="cover-best-text">${coverBoardLines(view.board)}</span>
 diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
---- a/src/ui/Feedback.ts	2026-10-15 09:59:11.525528400 +0530
-+++ b/src/ui/Feedback.ts	2026-10-15 09:59:11.823428600 +0530
+--- a/src/ui/Feedback.ts	2026-10-15 10:23:12.219258800 +0530
++++ b/src/ui/Feedback.ts	2026-10-15 10:23:12.585190700 +0530
 @@ -16,7 +16,7 @@
  /** The thank-you's tick in its green disc (Figma 133:12946). */
  const DONE_TICK = '<svg class="feedback-tick" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect width="64" height="64" rx="32" fill="#5BD08F" fill-opacity=".16"/><path d="M21 32 29 40 43 24" stroke="#5BD08F" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -527,8 +551,8 @@ diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
        </div>`;
      const done = document.getElementById('feedback-done');
 diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
---- a/src/ui/HUD.ts	2026-10-15 09:59:11.524022200 +0530
-+++ b/src/ui/HUD.ts	2026-10-15 09:59:11.813978000 +0530
+--- a/src/ui/HUD.ts	2026-10-15 10:23:12.218258000 +0530
++++ b/src/ui/HUD.ts	2026-10-15 10:23:12.575676100 +0530
 @@ -334,7 +334,7 @@
          -->
          <div class="score-bug">
@@ -566,8 +590,8 @@ diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
        this.$('share-status').textContent = 'Game link copied. Send it to your friends.';
      } catch (error) {
 diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
---- a/src/ui/Kit.ts	2026-10-15 09:59:11.531552800 +0530
-+++ b/src/ui/Kit.ts	2026-10-15 09:59:11.819112900 +0530
+--- a/src/ui/Kit.ts	2026-10-15 10:23:12.223258100 +0530
++++ b/src/ui/Kit.ts	2026-10-15 10:23:12.580683200 +0530
 @@ -214,7 +214,7 @@
      ? `<div class="k-road-you"><span class="k-t-tag">${standing.measure.toLocaleString('en-US')}</span></div>` : '';
    const goal = escape(road.goal).replace(/^([\d,]+ \w+)/, '<span>$1</span>');
@@ -578,8 +602,8 @@ diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
        <span class="k-road-line"></span><span class="k-road-fill"></span>${rungs}${pin}
      </div>
 diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
---- a/src/ui/KitGallery.ts	2026-10-15 09:59:11.518499200 +0530
-+++ b/src/ui/KitGallery.ts	2026-10-15 09:59:11.808476800 +0530
+--- a/src/ui/KitGallery.ts	2026-10-15 10:23:12.213250900 +0530
++++ b/src/ui/KitGallery.ts	2026-10-15 10:23:12.548561900 +0530
 @@ -99,7 +99,7 @@
  }
  
@@ -590,8 +614,8 @@ diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
    // Pressing a pill opens it, and a tab or a chip takes the choice: enough to
    // feel each one under a thumb. Nothing is kept.
 diff -ruN a/src/ui/MarathonCard.ts b/src/ui/MarathonCard.ts
---- a/src/ui/MarathonCard.ts	2026-10-15 09:59:11.547597300 +0530
-+++ b/src/ui/MarathonCard.ts	2026-10-15 09:59:11.812964700 +0530
+--- a/src/ui/MarathonCard.ts	2026-10-15 10:23:12.237295300 +0530
++++ b/src/ui/MarathonCard.ts	2026-10-15 10:23:12.574163400 +0530
 @@ -133,5 +133,5 @@
  /** What the share key sends: the total, each batter's score, and the link. */
  export function marathonShareText(total: CardTotal, batters: readonly CardBatter[], url: string): string {
