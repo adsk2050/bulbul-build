@@ -1,4 +1,4 @@
-"""Gully Bhaiya Cricket at /gully-bhaiya/ (the 3D game, formerly /hitman/): served, and Bhaiya has its rules."""
+"""Bulbul Flash Cricket at /bulbul-flash/ (the 3D game): served, with its rules."""
 
 from __future__ import annotations
 
@@ -9,21 +9,20 @@ from bulbul_build.commentary import game_rules
 
 def test_page_redirects_to_directory(client):  # noqa: F811
     c, _ = client
-    r = c.get("/gully-bhaiya", follow_redirects=False)
+    r = c.get("/bulbul-flash", follow_redirects=False)
     assert r.status_code == 307
-    assert r.headers["location"] == "/gully-bhaiya/"
+    assert r.headers["location"] == "/bulbul-flash/"
 
 
-def test_old_hitman_links_move_to_the_new_name(client):  # noqa: F811
+def test_old_names_are_gone(client):  # noqa: F811
     c, _ = client
-    for old in ("/hitman", "/hitman/"):
-        r = c.get(old, follow_redirects=False)
-        assert r.status_code == 301 and r.headers["location"] == "/gully-bhaiya/"
+    for old in ("/hitman", "/hitman/", "/gully-bhaiya", "/gully-bhaiya/"):
+        assert c.get(old, follow_redirects=False).status_code == 404
 
 
 def test_hitman_page_served_with_voice_and_credit(client):  # noqa: F811
     c, _ = client
-    r = c.get("/gully-bhaiya/")
+    r = c.get("/bulbul-flash/")
     assert r.status_code == 200
     assert "/static/hitman-voice.js" in r.text
     assert "ekcuttingchaidesign" in r.text
@@ -32,11 +31,12 @@ def test_hitman_page_served_with_voice_and_credit(client):  # noqa: F811
     assert "font-src 'self'" in csp
     assert "script-src 'self'" in csp and "unsafe-inline" not in csp.split("script-src")[1]
     assert "Hitman" not in r.text.split("<body>")[0]  # not in the title or meta
-    assert c.get("/gully-bhaiya/CREDITS.txt").status_code == 200
+    assert "Bhaiya" not in r.text
+    assert c.get("/bulbul-flash/CREDITS.txt").status_code == 200
     assert c.get("/static/hitman-voice.js").status_code == 200
 
 
 def test_hitman_rules_loaded_for_commentator():
     rules = game_rules("hitman")
-    assert "Gully Bhaiya Cricket" in rules and "Hitman" not in rules
+    assert "Bulbul Flash Cricket" in rules and "Hitman" not in rules and "Bhaiya" not in rules
     assert "in_air" in rules and "timing_ms" in rules

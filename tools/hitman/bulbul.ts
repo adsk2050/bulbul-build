@@ -1,5 +1,5 @@
 /**
- * Live commentary hooks for bulbul-build (Gully Bhaiya on Sarvam Bulbul).
+ * Live commentary hooks for bulbul-build (Bulbul, the commentator, on Sarvam Bulbul).
  *
  * The game calls these at the moment things happen; they describe the ball,
  * the stroke and the result in plain words and hand them to
@@ -98,7 +98,7 @@ export function ballPlayed(d: Delivery, attempt: ShotAttempt | null, o: ShotOutc
   const input = attempt ? lastInput : null;
   lastInput = null;
   const kind = o.isWicket ? 'wicket' : o.madeBatContact ? 'hit' : 'miss';
-  // The game's sign is positive = late; Gully Bhaiya's protocol is positive = early.
+  // The game's sign is positive = late; the commentary protocol is positive = early.
   const delta = o.timingDeltaMs;
   const tight = !!STYLES[d.style].tight;
   const onTime = (tight ? GAME.timing.perfect * GAME.fastTimingScale : GAME.timing.perfect);

@@ -1,5 +1,5 @@
 "use strict";
-// Gully Bhaiya for Hitman Cricket: the game (web/hitman/, patched by
+// Bulbul, the commentator, for Bulbul Flash Cricket (upstream: Hitman Cricket): the game (web/hitman/, patched by
 // tools/hitman/) calls window.bulbulCommentary.event(kind, detail, state) at
 // the moment a ball is decided. This sends it to /ws/cricket with game
 // "hitman", plays the line Bulbul streams back, and keeps the player's habits
@@ -44,7 +44,7 @@
   box.innerHTML = '<div id="bb-line"></div>';
   const sub = document.createElement("div");
   sub.id = "bb-sub";
-  sub.innerHTML = '<span id="bb-speed">🎙️ Gully Bhaiya on Sarvam Bulbul</span>' +
+  sub.innerHTML = '<span id="bb-speed">🎙️ Live commentary: Sarvam Bulbul Flash</span>' +
     ' · 3D game: ekcuttingchaidesign (open source)';
   (document.body ? Promise.resolve() : new Promise((r) => addEventListener("DOMContentLoaded", r))).then(() => { document.body.appendChild(box); document.body.appendChild(sub); });
   const $ = (id) => document.getElementById(id);
@@ -225,7 +225,7 @@
     }
     if (window.BULBUL_DEBUG) console.log("[bulbul]", kind, detail, state);
   }
-  // Bhaiya is still busy with the last ball: waiting for its line, or speaking it.
+  // Bulbul is still busy with the last ball: waiting for its line, or speaking it.
   function busy() {
     const waiting = nextId - 1 > answeredId && performance.now() - (sent.get(nextId - 1) || 0) < 3000;
     const speaking = ac && playAt > ac.currentTime + 0.05;
@@ -276,7 +276,7 @@
     event(kind, detail, state) {
       detail = detail || {};
       state = state || {};
-      // The run-up is for the highlight reel only; Bhaiya says nothing for it.
+      // The run-up is for the highlight reel only; Bulbul says nothing for it.
       if (kind === "runup") return window.bulbulReel && window.bulbulReel.runup();
       if (kind === "start") {
         window.bulbulReel && window.bulbulReel.start();

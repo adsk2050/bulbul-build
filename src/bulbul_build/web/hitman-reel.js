@@ -1,8 +1,8 @@
 "use strict";
-// Highlight reel for Gully Bhaiya Cricket, built while the innings is played.
+// Highlight reel for Bulbul Flash Cricket, built while the innings is played.
 //
 // Every ball is recorded in the browser from the bowler's run-up: the game's
-// canvas and the game's own sound. Gully Bhaiya's voice is not taken from that
+// canvas and the game's own sound. Bulbul's voice is not taken from that
 // recording; every line's audio arrives whole from the server (hitman-voice.js
 // hands it over), so each clip gets its line complete and clean. A ball worth
 // showing (four, six, wicket) is cut into the reel as soon as its line is in,
@@ -216,7 +216,7 @@
     v.src = URL.createObjectURL(clip.blob);
     const src = c.actx.createMediaElementSource(v);
     const gain = c.actx.createGain();
-    gain.gain.value = p.line ? 0.45 : 1; // the game's sound sits under Bhaiya
+    gain.gain.value = p.line ? 0.45 : 1; // the game's sound sits under the commentary
     src.connect(gain).connect(c.dest);
     await new Promise((r) => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 4000); });
     if (c.actx.state === "suspended") await c.actx.resume().catch(() => {});
@@ -287,7 +287,7 @@
     await done;
     clearInterval(c.tick); c.actx.close();
     if (mine !== innings) return;
-    const name = `gully-bhaiya-${summary.runs}-${summary.wickets}.${EXT}`;
+    const name = `bulbul-flash-${summary.runs}-${summary.wickets}.${EXT}`;
     reel = { state: "ready", file: new File([new Blob(c.chunks, { type: MIME })], name, { type: MIME.split(";")[0] }) };
     cut = null;
     renderButton();
@@ -319,14 +319,14 @@
   function outroCard(ctx) {
     backdrop(ctx);
     const s = summary || { runs: 0, wickets: 0, balls: 0, name: "" };
-    centred(ctx, "GULLY BHAIYA CRICKET", 250, 40, "#ffb347");
+    centred(ctx, "BULBUL FLASH CRICKET", 250, 40, "#ffb347");
     if (s.name) centred(ctx, s.name, 360, 64, "#ffffff");
     centred(ctx, `${s.runs}/${s.wickets}`, 520, 140, "#ffffff", 900);
     centred(ctx, `${s.balls} balls`, 600, 36, "#cfe3f5", 600);
-    centred(ctx, "Gully Bhaiya", 790, 76, "#ffffff");
-    centred(ctx, "on Sarvam Bulbul Flash", 870, 44, "#ffb347");
+    centred(ctx, "Live commentary", 790, 64, "#ffffff");
+    centred(ctx, "by Sarvam Bulbul Flash", 870, 44, "#ffb347");
     centred(ctx, `Can you beat ${s.runs}?`, 1020, 56, "#ffffff");
-    centred(ctx, location.host + "/gully-bhaiya", 1110, 38, "#7fd3ff", 700);
+    centred(ctx, location.host + "/bulbul-flash", 1110, 38, "#7fd3ff", 700);
   }
   function overlay(ctx, clip) {
     const d = clip.ball.detail || {};
@@ -348,7 +348,7 @@
       ls.forEach((l, i) => ctx.fillText(l, W / 2, y + 52 + i * 44));
     }
     ctx.font = `600 26px ${FONT}`; ctx.fillStyle = "rgba(255,255,255,.85)";
-    ctx.fillText("🎙️ Gully Bhaiya on Sarvam Bulbul Flash", W / 2, H - 60);
+    ctx.fillText("🎙️ Live commentary: Sarvam Bulbul Flash", W / 2, H - 60);
   }
   function cover(ctx, v) {
     const vw = v.videoWidth, vh = v.videoHeight;
@@ -423,7 +423,7 @@
   }
   async function share() {
     if (!reel || reel.state !== "ready") return;
-    const text = `Maine Gully Bhaiya Cricket mein ${summary.runs} banaye, Gully Bhaiya ki live commentary ke saath! Tum beat karo: ${location.origin}/gully-bhaiya/`;
+    const text = `Maine Bulbul Flash Cricket mein ${summary.runs} banaye, Bulbul ki live commentary ke saath! Tum beat karo: ${location.origin}/bulbul-flash/`;
     try { await navigator.share({ files: [reel.file], text }); } catch (e) { if (e.name !== "AbortError") download(); }
   }
 

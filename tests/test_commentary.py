@@ -1,4 +1,4 @@
-"""Gully Bhaiya commentary: one line per event, stale lines dropped. Sarvam faked."""
+"""Bulbul commentary: one line per event, stale lines dropped. Sarvam faked."""
 
 from __future__ import annotations
 

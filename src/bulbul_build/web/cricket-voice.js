@@ -1,5 +1,5 @@
 "use strict";
-// Gully Bhaiya: sends each game event to /ws/cricket and plays the commentary
+// Bulbul: sends each game event to /ws/cricket and plays the commentary
 // Bulbul streams back. The game (cricket.html) calls gv.event / gv.swing.
 // Protocol: see src/bulbul_build/commentary.py.
 
@@ -124,7 +124,7 @@
     shareLink() {
       const url = location.origin + "/cricket";
       const s = state();
-      const text = `Gully Bhaiya ne meri commentary ki 🏏🎙️ ${s.runs}/${s.wickets} chasing ${s.target}. Tu kitna maarega? ${url}`;
+      const text = `Bulbul ne meri commentary ki 🏏🎙️ ${s.runs}/${s.wickets} chasing ${s.target}. Tu kitna maarega? ${url}`;
       if (navigator.share) navigator.share({ text }).catch(() => {});
       else navigator.clipboard.writeText(text);
     },

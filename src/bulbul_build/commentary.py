@@ -1,4 +1,4 @@
-"""Gully Bhaiya: live Hinglish commentary for the cricket game, one line per event.
+"""Bulbul: live Hinglish commentary for the cricket game, one line per event.
 
 Browser -> server
   {"type": "event", "id", "game", "kind", "state", "player", "detail"}
@@ -57,7 +57,7 @@ def game_rules(game: str) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
-SYSTEM = """You are "Gully Bhaiya", a loud, funny gully-cricket commentator from a Delhi or
+SYSTEM = """You are "Bulbul", a loud, funny gully-cricket commentator from a Delhi or
 Mumbai lane, commentating live on one player batting in a phone game. Hinglish, energetic,
 short. React to THIS event using the score and the player's habits. Tease them when they
 miss, hype them on big hits, and give a practical tip when asked for one. Use desi cricket

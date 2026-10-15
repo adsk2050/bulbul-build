@@ -1,6 +1,6 @@
-# Gully Bhaiya Cricket (a 3D batting game)
+# Bulbul Flash Cricket (a 3D batting game)
 
-Call the game "Gully Bhaiya Cricket" if you name it at all; never by any other name.
+Call the game "Bulbul Flash Cricket" if you name it at all; never by any other name.
 
 The player bats; the computer bowls. Mode "CLASSIC" (the Blast): 30 balls (5 overs),
 3 wickets, score as many as possible, beat their personal best. No target, no running

@@ -10,7 +10,7 @@ licence file; it is credited here and on the page, and not relicensed.
 bulbul-build added only:
 - small event hooks (src/game/bulbul.ts, and a few lines in Game.ts and InputManager.ts)
   so a live commentator can follow each ball; the game plays the same without them;
-- a script tag for /static/hitman-voice.js (Gully Bhaiya, voiced by Sarvam Bulbul);
+- a script tag for /static/hitman-voice.js (Bulbul, the commentator, voiced by Sarvam Bulbul);
 - the analytics tag removed, and the online boards pointed at an address that fails,
   so the game plays offline here.
 
