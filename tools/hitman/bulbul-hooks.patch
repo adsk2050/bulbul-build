@@ -155,3 +155,17 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
      this.used = true; this.pending = null; this.shoot(shot, time);
    }
    flush(time: number) {
+diff -ruN a/src/main.ts b/src/main.ts
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -64,7 +64,9 @@
+   const { Game } = await import('./Game');
+   // A forgetful window can still bat; what it cannot do is take a place on the
+   // board, so the card offers it nothing to claim.
+-  const game = new Game(root, { canRegister: !hidden });
++  // Bulbul build: no board server, so every visitor bats as a private window does.
++  void hidden;
++  const game = new Game(root, { canRegister: false });
+   window.addEventListener('pagehide', () => game.dispose(), { once: true });
+ })();
+ // A back/forward-cache restore must not reuse a disposed WebGL renderer.

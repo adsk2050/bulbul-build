@@ -25,3 +25,4 @@ private/
 
 # agent worktrees and local Claude settings
 .claude/
+.playwright-mcp/
