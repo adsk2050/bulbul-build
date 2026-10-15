@@ -312,11 +312,13 @@
   function tickProgress(r, secs) {
     const t0 = performance.now();
     const id = setInterval(() => {
-      if (reel !== r || r.state !== "building") return clearInterval(id);
-      // Steady to 90 % over the estimate, then on towards 99 % ever more slowly, so a
-      // slow phone (or the browser's own join) never looks stuck.
-      const f = (performance.now() - t0) / 1000 / secs;
-      const pct = f <= 1 ? 90 * f : 90 + 9 * (1 - Math.exp(-(f - 1)));
+      if (reel !== r || r.state !== "building" || r.progress === 100) return clearInterval(id);
+      // Speeding up: slow at first, faster towards the end (bars that accelerate feel
+      // quicker; a stall near the end feels worst; Harrison et al., UIST 2007). The
+      // estimate is padded, so most reels finish before the top and jump to done; one
+      // that runs over keeps creeping on towards 99 %, never frozen.
+      const f = (performance.now() - t0) / 1000 / (secs * 1.3);
+      const pct = f <= 1 ? 6 + 89 * Math.pow(f, 1.6) : 95 + 4 * (1 - Math.exp(-(f - 1) * 2));
       r.progress = Math.max(1, Math.min(99, Math.floor(pct)));
       renderButton();
     }, 150);
@@ -422,6 +424,11 @@
       console.warn("[reel] join", e);
       blob = [...chosen].sort((a, b) => b.score - a.score)[0].blob;
     }
+    if (mine !== innings) return;
+    // Done, often before the bar got near the top: a quick sweep to 100 % first.
+    reel.progress = 100;
+    renderButton();
+    await sleep(450);
     if (mine !== innings) return;
     const name = `bulbul-flash-${summary.runs}-${summary.wickets}.${(blob.type || MIME).includes("webm") ? "webm" : "mp4"}`;
     reel = { state: "ready", file: new File([blob], name, { type: blob.type || "video/mp4" }) };
@@ -530,12 +537,20 @@
     const ready = reel.state === "ready";
     for (const b of [shareBtn, saveBtn]) b.disabled = !ready;
     if (ready) {
+      saveBtn.firstChild.style.backgroundImage = "";
       label(shareBtn, "SHARE", "#mcard-share");
       label(saveBtn, row.contains(shareBtn) ? "DOWNLOAD" : "DOWNLOAD HIGHLIGHTS");
       saveBtn.style.display = shareBtn.style.display = "";
     } else {
       // One wide key, showing progress, until the file is ready.
       label(saveBtn, reel.state === "building" ? `HIGHLIGHTS ${reel.progress || 0}%` : "NO HIGHLIGHTS THIS TIME");
+      // The key fills up behind its label as the reel is made.
+      const pct = reel.state === "building" ? reel.progress || 0 : 0;
+      saveBtn.firstChild.style.backgroundImage = pct
+        ? `linear-gradient(90deg, rgba(255,255,255,.32) ${pct}%, transparent ${pct}%)` : "";
+      // Disabled keys are dimmed by the game; this one is a progress bar, so it stays bright.
+      saveBtn.style.opacity = "1";
+      saveBtn.style.filter = "none";
       shareBtn.style.display = "none";
       saveBtn.style.display = "";
     }
