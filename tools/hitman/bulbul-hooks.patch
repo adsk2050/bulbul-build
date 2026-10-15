@@ -1,7 +1,7 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 09:17:47.817649000 +0530
-+++ b/index.html	2026-10-15 09:17:48.070053800 +0530
-@@ -1,27 +1,39 @@
+--- a/index.html	2026-10-15 09:59:11.377590800 +0530
++++ b/index.html	2026-10-15 09:59:11.715035000 +0530
+@@ -1,27 +1,41 @@
 -<!doctype html>
 -<html lang="en">
 -  <head>
@@ -53,6 +53,8 @@ diff -ruN a/index.html b/index.html
 +      .bb-title span{display:block;font-size:min(calc(var(--u) * 52),6.2cqh);color:#ffc93c}
 +      .bb-title b{display:block;font-size:min(calc(var(--u) * 64),7.6cqh);font-weight:400}
 +    </style>
++    <!-- The voice calls every ball, so the game's own text call-outs are hidden during play. -->
++    <style>#result,#phase-label,#hit-burst,#nearing,#level-banner{display:none!important}</style>
 +    <style>#cover-profile,#feedback-open,#feedback-pause,#feedback-card,#challenge-set,#card-key,.ec-player{display:none!important}</style>
 +    <aside class="desk-note" aria-label="About this page">
 +      <h2>Bulbul on the mic</h2>
@@ -69,8 +71,8 @@ diff -ruN a/index.html b/index.html
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 09:17:47.822160800 +0530
-+++ b/src/Game.ts	2026-10-15 09:17:48.083051400 +0530
+--- a/src/Game.ts	2026-10-15 09:59:11.382427600 +0530
++++ b/src/Game.ts	2026-10-15 09:59:11.718602400 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
@@ -232,8 +234,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 09:17:47.890980900 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 09:17:48.376038700 +0530
+--- a/src/game/InputManager.ts	2026-10-15 09:59:11.491988500 +0530
++++ b/src/game/InputManager.ts	2026-10-15 09:59:11.876025500 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -301,8 +303,8 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
    }
    flush(time: number) {
 diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
---- a/src/game/KeyImage.ts	2026-10-15 09:17:47.855297500 +0530
-+++ b/src/game/KeyImage.ts	2026-10-15 09:17:48.461010200 +0530
+--- a/src/game/KeyImage.ts	2026-10-15 09:59:11.436702300 +0530
++++ b/src/game/KeyImage.ts	2026-10-15 09:59:11.908605200 +0530
 @@ -98,7 +98,7 @@
    ctx.fillStyle = '#ffffffcc';
    ctx.font = `800 26px ${FAMILY}`;
@@ -313,8 +315,8 @@ diff -ruN a/src/game/KeyImage.ts b/src/game/KeyImage.ts
  
    ctx.fillStyle = '#ffffffa8';
 diff -ruN a/src/game/Share.ts b/src/game/Share.ts
---- a/src/game/Share.ts	2026-10-15 09:17:47.870904700 +0530
-+++ b/src/game/Share.ts	2026-10-15 09:17:48.441959200 +0530
+--- a/src/game/Share.ts	2026-10-15 09:59:11.457828500 +0530
++++ b/src/game/Share.ts	2026-10-15 09:59:11.908605200 +0530
 @@ -1,13 +1,13 @@
  /** The link a friend follows: this game, without whatever seed or debug flag is on. */
  export const gameLink = () => new URL(location.pathname, location.origin).href;
@@ -358,8 +360,8 @@ diff -ruN a/src/game/Share.ts b/src/game/Share.ts
  
  export const keyWhatsappLink = (name: string, code: string, url: string) =>
 diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
---- a/src/game/StatsCard.ts	2026-10-15 09:17:47.870904700 +0530
-+++ b/src/game/StatsCard.ts	2026-10-15 09:17:48.489308600 +0530
+--- a/src/game/StatsCard.ts	2026-10-15 09:59:11.460830100 +0530
++++ b/src/game/StatsCard.ts	2026-10-15 09:59:11.911605000 +0530
 @@ -792,7 +792,7 @@
    // long one is set smaller, and past that cut short.
    ctx.font = font(700, 11.5);
@@ -379,8 +381,8 @@ diff -ruN a/src/game/StatsCard.ts b/src/game/StatsCard.ts
    ctx.fillStyle = '#ed7044';
    ctx.font = font(700, 12);
 diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
---- a/src/game/challenge-api.ts	2026-10-15 09:17:47.891979600 +0530
-+++ b/src/game/challenge-api.ts	2026-10-15 09:17:48.397119800 +0530
+--- a/src/game/challenge-api.ts	2026-10-15 09:59:11.492987700 +0530
++++ b/src/game/challenge-api.ts	2026-10-15 09:59:11.878035900 +0530
 @@ -220,11 +220,11 @@
  export const copy = {
    /** The link, before anybody has batted. */
@@ -397,8 +399,8 @@ diff -ruN a/src/game/challenge-api.ts b/src/game/challenge-api.ts
    nudge: (url: string) => `Still waiting on you. My innings is in. Yours isn't. ${url}`,
    /** A fresh room, aimed at the same person. */
 diff -ruN a/src/game/rating.ts b/src/game/rating.ts
---- a/src/game/rating.ts	2026-10-15 09:17:47.884464200 +0530
-+++ b/src/game/rating.ts	2026-10-15 09:17:48.374967900 +0530
+--- a/src/game/rating.ts	2026-10-15 09:59:11.481951200 +0530
++++ b/src/game/rating.ts	2026-10-15 09:59:11.875014700 +0530
 @@ -48,7 +48,7 @@
  
  /** What each is called on the prompt. */
@@ -409,8 +411,8 @@ diff -ruN a/src/game/rating.ts b/src/game/rating.ts
    survive: 'Test Survival',
    marathon: 'Test Marathon',
 diff -ruN a/src/game/tier.ts b/src/game/tier.ts
---- a/src/game/tier.ts	2026-10-15 09:17:47.887464900 +0530
-+++ b/src/game/tier.ts	2026-10-15 09:17:48.408630800 +0530
+--- a/src/game/tier.ts	2026-10-15 09:59:11.486470000 +0530
++++ b/src/game/tier.ts	2026-10-15 09:59:11.890394500 +0530
 @@ -239,10 +239,10 @@
    },
    {
@@ -426,8 +428,8 @@ diff -ruN a/src/game/tier.ts b/src/game/tier.ts
      // The ground is black with the faintest warmth in it rather than a dark
      // gold — gold on gold has nowhere to shine from.
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts	2026-10-15 09:17:47.822160800 +0530
-+++ b/src/main.ts	2026-10-15 09:17:48.084375000 +0530
+--- a/src/main.ts	2026-10-15 09:59:11.381416900 +0530
++++ b/src/main.ts	2026-10-15 09:59:11.718602400 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -440,8 +442,8 @@ diff -ruN a/src/main.ts b/src/main.ts
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
 diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
---- a/src/scene/CrowdCelebration.ts	2026-10-15 09:17:47.943754100 +0530
-+++ b/src/scene/CrowdCelebration.ts	2026-10-15 09:17:48.331934200 +0530
+--- a/src/scene/CrowdCelebration.ts	2026-10-15 09:59:11.555620000 +0530
++++ b/src/scene/CrowdCelebration.ts	2026-10-15 09:59:11.848141100 +0530
 @@ -19,12 +19,12 @@
  interface Reaction { ms: number; strength: number; labels: (mark: number) => string[]; priority: number }
  export const CROWD_MOMENTS: Record<CrowdMoment, Reaction> = {
@@ -460,8 +462,8 @@ diff -ruN a/src/scene/CrowdCelebration.ts b/src/scene/CrowdCelebration.ts
    triple: { ms: 5200, strength: 1, labels: () => ['300', 'TRIPLE!', '{NAME} 300*', 'LEGEND!', 'HISTORY!'], priority: 3 },
    four: { ms: 5600, strength: 1, labels: () => ['400', 'FOUR HUNDRED', '{NAME} 400*', 'LEGEND!', 'IMMORTAL'], priority: 3 },
 diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
---- a/src/scene/GameScene.ts	2026-10-15 09:17:47.951289100 +0530
-+++ b/src/scene/GameScene.ts	2026-10-15 09:17:48.309903600 +0530
+--- a/src/scene/GameScene.ts	2026-10-15 09:59:11.566157100 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 09:59:11.839620100 +0530
 @@ -996,6 +996,8 @@
    private static meetsAt(charging: boolean) {
      return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
@@ -472,8 +474,8 @@ diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
      const contact = this.flight(delivery, GameScene.meetsAt(charging));
      this.batter.swing(shot, now, contact.x, contact.y, contact.z, charging, lofted, sweeping, levelled);
 diff -ruN a/src/scene/boards.ts b/src/scene/boards.ts
---- a/src/scene/boards.ts	2026-10-15 09:17:47.949268500 +0530
-+++ b/src/scene/boards.ts	2026-10-15 09:17:48.326452400 +0530
+--- a/src/scene/boards.ts	2026-10-15 09:59:11.563637300 +0530
++++ b/src/scene/boards.ts	2026-10-15 09:59:11.840619900 +0530
 @@ -19,7 +19,7 @@
  interface Ad { bg: string; ink: string; big: string; small?: string; accent?: string }
  
@@ -484,8 +486,8 @@ diff -ruN a/src/scene/boards.ts b/src/scene/boards.ts
    { bg: '#3b1f6e', ink: '#ffd23f', big: 'GOLDEN DUCK', small: 'INSURANCE' },
    { bg: '#f4f6f8', ink: '#16304a', big: 'SILLY POINT', small: 'PAINTS', accent: '#1f9d8b' },
 diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
---- a/src/ui/Cover.ts	2026-10-15 09:17:47.917176600 +0530
-+++ b/src/ui/Cover.ts	2026-10-15 09:17:48.206363000 +0530
+--- a/src/ui/Cover.ts	2026-10-15 09:59:11.541079100 +0530
++++ b/src/ui/Cover.ts	2026-10-15 09:59:11.811479100 +0530
 @@ -23,7 +23,6 @@
  import { cta, icon } from './Kit';
  
@@ -504,8 +506,8 @@ diff -ruN a/src/ui/Cover.ts b/src/ui/Cover.ts
              <button id="cover-board" type="button" class="cover-best">
                <span class="cover-best-trophy">${icon('trophy')}</span>
 diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
---- a/src/ui/Feedback.ts	2026-10-15 09:17:47.907645000 +0530
-+++ b/src/ui/Feedback.ts	2026-10-15 09:17:48.300407900 +0530
+--- a/src/ui/Feedback.ts	2026-10-15 09:59:11.525528400 +0530
++++ b/src/ui/Feedback.ts	2026-10-15 09:59:11.823428600 +0530
 @@ -16,7 +16,7 @@
  /** The thank-you's tick in its green disc (Figma 133:12946). */
  const DONE_TICK = '<svg class="feedback-tick" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect width="64" height="64" rx="32" fill="#5BD08F" fill-opacity=".16"/><path d="M21 32 29 40 43 24" stroke="#5BD08F" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -525,8 +527,8 @@ diff -ruN a/src/ui/Feedback.ts b/src/ui/Feedback.ts
        </div>`;
      const done = document.getElementById('feedback-done');
 diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
---- a/src/ui/HUD.ts	2026-10-15 09:17:47.907645000 +0530
-+++ b/src/ui/HUD.ts	2026-10-15 09:17:48.273618500 +0530
+--- a/src/ui/HUD.ts	2026-10-15 09:59:11.524022200 +0530
++++ b/src/ui/HUD.ts	2026-10-15 09:59:11.813978000 +0530
 @@ -334,7 +334,7 @@
          -->
          <div class="score-bug">
@@ -564,8 +566,8 @@ diff -ruN a/src/ui/HUD.ts b/src/ui/HUD.ts
        this.$('share-status').textContent = 'Game link copied. Send it to your friends.';
      } catch (error) {
 diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
---- a/src/ui/Kit.ts	2026-10-15 09:17:47.911183100 +0530
-+++ b/src/ui/Kit.ts	2026-10-15 09:17:48.277230600 +0530
+--- a/src/ui/Kit.ts	2026-10-15 09:59:11.531552800 +0530
++++ b/src/ui/Kit.ts	2026-10-15 09:59:11.819112900 +0530
 @@ -214,7 +214,7 @@
      ? `<div class="k-road-you"><span class="k-t-tag">${standing.measure.toLocaleString('en-US')}</span></div>` : '';
    const goal = escape(road.goal).replace(/^([\d,]+ \w+)/, '<span>$1</span>');
@@ -576,8 +578,8 @@ diff -ruN a/src/ui/Kit.ts b/src/ui/Kit.ts
        <span class="k-road-line"></span><span class="k-road-fill"></span>${rungs}${pin}
      </div>
 diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
---- a/src/ui/KitGallery.ts	2026-10-15 09:17:47.903639500 +0530
-+++ b/src/ui/KitGallery.ts	2026-10-15 09:17:48.187622600 +0530
+--- a/src/ui/KitGallery.ts	2026-10-15 09:59:11.518499200 +0530
++++ b/src/ui/KitGallery.ts	2026-10-15 09:59:11.808476800 +0530
 @@ -99,7 +99,7 @@
  }
  
@@ -588,8 +590,8 @@ diff -ruN a/src/ui/KitGallery.ts b/src/ui/KitGallery.ts
    // Pressing a pill opens it, and a tab or a chip takes the choice: enough to
    // feel each one under a thumb. Nothing is kept.
 diff -ruN a/src/ui/MarathonCard.ts b/src/ui/MarathonCard.ts
---- a/src/ui/MarathonCard.ts	2026-10-15 09:17:47.920687000 +0530
-+++ b/src/ui/MarathonCard.ts	2026-10-15 09:17:48.225006100 +0530
+--- a/src/ui/MarathonCard.ts	2026-10-15 09:59:11.547597300 +0530
++++ b/src/ui/MarathonCard.ts	2026-10-15 09:59:11.812964700 +0530
 @@ -133,5 +133,5 @@
  /** What the share key sends: the total, each batter's score, and the link. */
  export function marathonShareText(total: CardTotal, batters: readonly CardBatter[], url: string): string {
