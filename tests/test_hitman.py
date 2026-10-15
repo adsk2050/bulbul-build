@@ -42,18 +42,16 @@ def test_hitman_rules_loaded_for_commentator():
     assert "in_air" in rules and "timing_ms" in rules
 
 
-def test_game_only_site_serves_nothing_else(client, monkeypatch):  # noqa: F811
+def test_public_site_hides_only_the_pixel_game(client, monkeypatch):  # noqa: F811
     from bulbul_build import app as app_mod
 
     c, _ = client
-    monkeypatch.setattr(app_mod, "GAME_ONLY", True)
-    assert c.get("/bulbul-flash/").status_code == 200
-    assert c.get("/static/hitman-reel.js").status_code == 200
-    r = c.get("/", follow_redirects=False)
-    assert r.status_code == 302 and r.headers["location"] == "/bulbul-flash/"
-    for path in ("/talk", "/cricket", "/m/udhaar-wapas", "/api/modes", "/api/budget"):
-        assert c.get(path).status_code == 404, path
-    assert c.post("/api/udhaar-wapas", json={}).status_code == 404
+    monkeypatch.setattr(app_mod, "PUBLIC_SITE", True)
+    assert c.get("/cricket").status_code == 404
+    for path in ("/", "/bulbul-flash/", "/talk", "/toys", "/m/udhaar-wapas", "/api/modes"):
+        assert c.get(path).status_code == 200, path
+    home = c.get("/").text
+    assert home.index("/bulbul-flash/") < home.index("/talk") and "/cricket" not in home
 
 
 def _clip(tmp_path, name: str, secs: int) -> bytes:

@@ -27,6 +27,8 @@ HITMAN_OUT="$out" VITE_BOARD_API=https://board.invalid npx vite build --config v
 cd "$out"
 rm -f ./*.png leaderboard_cover.webp rivals_cover.webp play-qr.svg
 cp "$here/CREDITS.txt" CREDITS.txt
+# The cover art under a fixed name, for the site's home page (the hashed name changes each build).
+cp assets/cover-poster-*.webp flash-cover.webp
 # The upstream name filter carries offensive word lists; this repo keeps none.
 python "$here/strip_wordlists.py" "$out"
 du -sh "$out"

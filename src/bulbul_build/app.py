@@ -44,8 +44,9 @@ TALK_LOG = settings.cache_dir.parent / "talk-log.jsonl"
 UTTERANCES = settings.cache_dir.parent / "utterances"
 # The public site serves the 3D game alone: no Talking Bulbul (paid STT) and no
 # form toys, so nothing else can spend the shared budget. Locally everything is on.
-GAME_ONLY = os.environ.get("GAME_ONLY") == "1"
-GAME_ONLY_PATHS = ("/bulbul-flash", "/static/", "/api/reel")
+PUBLIC_SITE = os.environ.get("PUBLIC_SITE") == "1"
+# Kept in the code and served locally, but not on the public site.
+HIDDEN_ON_PUBLIC = ("/cricket",)
 CRICKET_LOG = settings.cache_dir.parent / "cricket-log.jsonl"  # each event and the line it got  # what STT heard, for comparing STT settings  # visitor lines and replies, for tuning
 
 
@@ -63,9 +64,7 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 
 @app.middleware("http")
 async def security(request: Request, call_next):
-    if GAME_ONLY and not request.url.path.startswith(GAME_ONLY_PATHS):
-        if request.url.path == "/":
-            return RedirectResponse("/bulbul-flash/", status_code=302)
+    if PUBLIC_SITE and request.url.path.startswith(HIDDEN_ON_PUBLIC):
         return JSONResponse({"error": "not found"}, status_code=404)
     limit = MAX_CLIP if request.url.path in ("/api/clip", "/api/reel") else MAX_BODY
     if int(request.headers.get("content-length") or 0) > limit:
@@ -95,6 +94,12 @@ async def security(request: Request, call_next):
 
 
 @app.get("/")
+async def home():
+    # The directory: Bulbul Flash Cricket on top, then the other demos.
+    return FileResponse(WEB / "home.html")
+
+
+@app.get("/toys")
 @app.get("/m/{slug}")
 async def page(slug: str | None = None):
     return FileResponse(WEB / "index.html")
@@ -138,13 +143,14 @@ def masked_chain_ip(ip: str) -> str:
 @app.websocket("/ws/talk")
 async def talk_ws(ws: WebSocket):
     ip = limiter.client_ip(ws)
-    if GAME_ONLY or _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
+    if _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
         await ws.close(code=1013)
         return
     await ws.accept()
     _talkers[ip] = _talkers.get(ip, 0) + 1
     try:
-        await Session(ws, ws.app.state.sarvam, UNCLE, log_path=TALK_LOG, utterance_dir=UTTERANCES).run()
+        await Session(ws, ws.app.state.sarvam, UNCLE, log_path=TALK_LOG, utterance_dir=UTTERANCES,
+                      quota=line_quota, ip=ip).run()
     finally:
         _talkers[ip] -= 1
 
@@ -286,8 +292,9 @@ async def generate(slug: str, request: Request):
     mode = REGISTRY.get(slug)
     if mode is None:
         raise HTTPException(404, "unknown mode")
-    if not limiter.allow(limiter.client_ip(request)):
-        raise HTTPException(429, "Thoda ruko! Too many requests, try again in a minute.")
+    ip = limiter.client_ip(request)
+    if not limiter.allow(ip) or not line_quota.take(ip):
+        raise HTTPException(429, "Thoda ruko! Too many requests, try again in a while.")
     try:
         form = mode.form.model_validate(await request.json())
     except (ValidationError, ValueError) as e:

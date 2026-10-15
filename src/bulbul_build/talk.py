@@ -74,7 +74,10 @@ class Session:
     def __init__(
         self, ws: WebSocket, sarvam: Sarvam, recorded_dir: Path,
         policy: Policy | None = None, log_path: Path | None = None, utterance_dir: Path | None = None,
+        quota=None, ip: str = "",
     ):
+        self.quota = quota  # paid turns per IP per hour, shared with the other demos (guard.LineQuota)
+        self.ip = ip
         self.utterance_dir = utterance_dir
         self.ws = ws
         self.id = secrets.token_hex(4)
@@ -128,7 +131,7 @@ class Session:
                 self.task.cancel()
 
     async def start_turn(self) -> None:
-        if self.policy.turn >= MAX_TURNS:
+        if self.policy.turn >= MAX_TURNS or (self.quota and not self.quota.take(self.ip)):
             await self.send({"type": "error", "message": "Mitthu is tired. Come back later!"})
             return
         if self.frames is not None:  # a speech_start without an end: close the old turn
