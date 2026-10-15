@@ -108,7 +108,7 @@
       answeredId = Math.max(answeredId, m.id);
       stopAll(); // a new line takes the mic
       playingId = m.id;
-      showLine(m.text);
+      // No caption during play: the voice is the point. Errors still show.
     } else if (m.type === "skip") {
       reel && reel.skip(m.id);
       answeredId = Math.max(answeredId, m.id);

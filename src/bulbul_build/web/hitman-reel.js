@@ -359,39 +359,44 @@
   const canShareFiles = () => {
     try { return !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.mp4", { type: "video/mp4" })] })); } catch (_) { return false; }
   };
-  function button(label, bg, fg, onClick) {
+  // The game's own button (Kit.ts cta()): a coloured face on a ledge, its display font.
+  function button(kind, onClick) {
     const b = document.createElement("button");
     b.type = "button";
-    b.style.cssText = `flex:1 1 0;padding:14px 12px;border:0;border-radius:16px;background:${bg};color:${fg};` +
-      "font:800 17px/1.2 system-ui,sans-serif;cursor:pointer;white-space:nowrap";
+    b.className = `k-cta k-cta--${kind}`;
+    b.style.cssText = "flex:1 1 0;min-width:0";
+    b.innerHTML = '<span class="k-cta-face"><span></span></span>';
     b.addEventListener("click", onClick);
     return b;
+  }
+  function label(b, text, iconFrom) {
+    const face = b.firstChild;
+    face.lastChild.textContent = text;
+    const svg = iconFrom && document.querySelector(`${iconFrom} svg`);
+    if (svg && !face.querySelector("svg")) face.prepend(svg.cloneNode(true));
   }
   function renderButton() {
     if (!row) {
       row = document.createElement("div");
       row.id = "bb-share";
       row.style.cssText = "flex:1 1 100%;display:flex;gap:10px;margin:0 0 10px";
-      shareBtn = button("", "#25D366", "#06260f", share);
-      saveBtn = button("⬇️ Download", "#e8eef5", "#0b1a2a", download);
+      shareBtn = button("share-wide", share);
+      saveBtn = button("secondary", download);
       if (canShareFiles()) row.append(shareBtn);
       row.append(saveBtn);
     }
     if (!reel) { row.remove(); return; }
     const ready = reel.state === "ready";
-    for (const b of [shareBtn, saveBtn]) { b.disabled = !ready; b.style.opacity = ready ? "1" : ".75"; }
-    const status = reel.state === "building" ? `🎬 Highlights ban rahe hain… ${reel.progress || 0}%`
-      : "Highlights could not be made this time";
+    for (const b of [shareBtn, saveBtn]) b.disabled = !ready;
     if (ready) {
-      shareBtn.textContent = "📲 Share highlights";
-      saveBtn.textContent = row.contains(shareBtn) ? "⬇️ Download" : "⬇️ Download highlights";
+      label(shareBtn, "SHARE", "#mcard-share");
+      label(saveBtn, row.contains(shareBtn) ? "DOWNLOAD" : "DOWNLOAD HIGHLIGHTS");
       saveBtn.style.display = shareBtn.style.display = "";
     } else {
-      // One wide status line until the file is ready.
-      const first = row.firstChild;
-      first.textContent = status;
-      for (const b of [shareBtn, saveBtn]) if (b !== first) b.style.display = "none";
-      first.style.display = "";
+      // One wide key, showing progress, until the file is ready.
+      label(saveBtn, reel.state === "building" ? `HIGHLIGHTS ${reel.progress || 0}%` : "NO HIGHLIGHTS THIS TIME");
+      shareBtn.style.display = "none";
+      saveBtn.style.display = "";
     }
     place();
   }
