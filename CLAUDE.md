@@ -122,3 +122,15 @@ names still say `hitman`: `web/hitman/` (the built game, committed),
   flag, CSS in the patched `index.html` hides board features).
 - **The reel** records the canvas plus game audio in the browser; Bulbul's voice
   is laid in from the line PCM, whole. 30 s max. Free: no server calls.
+
+## Public site (Render free web service)
+
+`render.yaml` + `Dockerfile` (Render Blueprint, free plan, no card). The container
+runs with `GAME_ONLY=1` (only `/bulbul-flash/` and `/static/`), `TRUST_PROXY=1`,
+ledger and logs in `/tmp` (lost on restart: the total cap counts from the last
+restart). `SARVAM_API_KEY` is set in Render's dashboard, never in git.
+`.github/workflows/keep-warm.yml` visits every 10 min so the free service never
+sleeps. Cost guards: `LINES_PER_IP_HOUR` (default 40) and one ball line per 2 s
+per connection. The visitor's IP comes from the rightmost `X-Forwarded-For` hop,
+or from `CLIENT_IP_HEADER` if set; the log line `cricket ws ... -> counted as`
+shows which, so check that two devices get different addresses.

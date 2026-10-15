@@ -1,0 +1,13 @@
+# Render's free service sleeps after 15 idle minutes and takes ~1 min to wake.
+# A visit every 10 minutes keeps it awake (one service fits Render's 750 free hours).
+name: keep-warm
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: curl -fsS -o /dev/null --max-time 90 https://bulbul-flash.onrender.com/bulbul-flash/ || true

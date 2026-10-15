@@ -1,0 +1,24 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> this repo. Free plan, no card.
+# SARVAM_API_KEY is asked for once in the dashboard (sync: false) and never stored here.
+services:
+  - type: web
+    name: bulbul-flash
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /bulbul-flash/
+    autoDeploy: true
+    envVars:
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: DAILY_BUDGET_INR
+        value: "25"
+      - key: TOTAL_BUDGET_INR
+        value: "75"
+      - key: PER_CALL_BUDGET_INR
+        value: "2"
+      - key: LINES_PER_IP_HOUR
+        value: "40"
+      - key: PER_IP_PER_MIN
+        value: "6"

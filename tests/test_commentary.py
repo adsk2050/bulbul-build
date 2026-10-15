@@ -146,3 +146,12 @@ def test_client_ip_behind_proxy_ignores_a_made_up_first_hop():
         client = None
 
     assert RateLimiter(5, trust_proxy=True).client_ip(Req()) == "1.2.3.4"
+
+
+def test_client_ip_header_wins_when_configured():
+    class Req:
+        headers = {"x-forwarded-for": "10.0.0.1", "cf-connecting-ip": "1.2.3.4"}
+        client = None
+
+    assert RateLimiter(5, trust_proxy=True, ip_header="CF-Connecting-IP").client_ip(Req()) == "1.2.3.4"
+    assert RateLimiter(5, trust_proxy=True).client_ip(Req()) == "10.0.0.1"

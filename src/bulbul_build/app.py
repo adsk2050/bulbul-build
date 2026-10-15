@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from . import audio, config
 from .budget import BudgetExceeded, Caps, Ledger, cost_of
-from .guard import LineQuota, RateLimiter
+from .guard import LineQuota, RateLimiter, masked_chain
 from .modes import REGISTRY, load_all
 from .sarvam import Sarvam, SarvamError
 from .commentary import Commentary
@@ -34,7 +34,8 @@ ledger = Ledger(
     settings.ledger_path,
     Caps(settings.daily_budget_inr, settings.total_budget_inr, settings.per_call_budget_inr),
 )
-limiter = RateLimiter(settings.per_ip_per_min, trust_proxy=os.environ.get("TRUST_PROXY") == "1")
+limiter = RateLimiter(settings.per_ip_per_min, trust_proxy=os.environ.get("TRUST_PROXY") == "1",
+                      ip_header=os.environ.get("CLIENT_IP_HEADER", ""))
 line_quota = LineQuota(settings.lines_per_ip_hour)
 OUT = settings.cache_dir / "out"
 UNCLE = settings.cache_dir.parent / "uncle"  # recorded fillers, scripts/make_fillers.py
@@ -130,6 +131,10 @@ async def uncle_clip(name: str):
 _talkers: dict[str, int] = {}
 
 
+def masked_chain_ip(ip: str) -> str:
+    return ".".join(ip.split(".")[:2]) + ".x.x" if "." in ip else ip[:9] + "…"
+
+
 @app.websocket("/ws/talk")
 async def talk_ws(ws: WebSocket):
     ip = limiter.client_ip(ws)
@@ -147,6 +152,8 @@ async def talk_ws(ws: WebSocket):
 @app.websocket("/ws/cricket")
 async def cricket_ws(ws: WebSocket):
     ip = limiter.client_ip(ws)
+    if limiter.trust_proxy:  # which hop is the visitor, behind the host's proxy
+        log.info("cricket ws %s -> counted as %s", masked_chain(ws), masked_chain_ip(ip))
     if _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
         await ws.close(code=1013)
         return

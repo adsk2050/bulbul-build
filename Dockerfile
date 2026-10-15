@@ -1,0 +1,18 @@
+# Bulbul Flash Cricket on Render (free web service, Docker). render.yaml points here.
+# Only the game is served (GAME_ONLY=1). Render sets PORT; the app listens on it.
+FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /usr/local/bin/uv
+RUN useradd -m -u 1000 user && mkdir /app && chown user /app
+WORKDIR /app
+COPY --chown=user pyproject.toml uv.lock README.md ./
+COPY --chown=user src ./src
+USER user
+RUN uv sync --frozen --no-dev
+# The free disk is not kept between restarts, so the ledger and logs live in /tmp:
+# the daily cap holds, the total cap counts from the last restart.
+ENV HOST=0.0.0.0 \
+    GAME_ONLY=1 \
+    TRUST_PROXY=1 \
+    LEDGER_PATH=/tmp/bulbul/ledger.sqlite \
+    CACHE_DIR=/tmp/bulbul/cache
+CMD ["/app/.venv/bin/bulbul-build"]
