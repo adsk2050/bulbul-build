@@ -71,6 +71,15 @@
     hideTimer = setTimeout(() => $("bb-line") && $("bb-line").classList.remove("on"), 5000);
   }
 
+  // ---- the game's result banner: only the big three are shown ----
+  // SIX, FOUR and wickets keep their banner; dots, singles and the game's timing
+  // hints stay hidden (see the CSS in the game's index.html). The voice does the rest.
+  const BIG = /^(SIX|FOUR|OUT|BOWLED|CAUGHT|LBW|STUMPED|RUN OUT|HIT WICKET|WICKET)/i;
+  setInterval(() => {
+    const r = document.getElementById("result"), t = document.getElementById("result-text");
+    if (r && t) r.classList.toggle("bb-big", BIG.test((t.textContent || "").trim()));
+  }, 100);
+
   // ---- audio ----
   function audio() {
     if (!ac) {

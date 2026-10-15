@@ -16,7 +16,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
-          url=https://bulbul-flash.onrender.com/bulbul-flash/
+          url=https://bulbul-flash.onrender.com/flash-cricket/
           for attempt in 1 2; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$url" || echo 000)
             [ "$code" = 200 ] && exit 0

@@ -31,8 +31,9 @@
       .bb-powered b{font-size:15px;font-weight:900;color:#0b1a2a}
       .bb-powered i{font-style:normal;font-size:10px;font-weight:700;color:#e0761b}
     </style>
-    <!-- The voice calls every ball, so the game's own text call-outs are hidden during play. -->
-    <style>#result,#phase-label,#hit-burst,#nearing,#level-banner{display:none!important}</style>
+    <!-- The voice calls every ball, so the game's text call-outs are hidden, except the big three:
+         SIX, FOUR and a wicket (hitman-voice.js marks those with .bb-big). Timing hints stay hidden. -->
+    <style>#result:not(.bb-big),#result #timing,#phase-label,#hit-burst,#nearing,#level-banner{display:none!important}</style>
     <style>#cover-profile,#feedback-open,#feedback-pause,#feedback-card,#challenge-set,#card-key,.ec-player{display:none!important}</style>
     <aside class="desk-note" aria-label="About this page">
       <h2>Bulbul on the mic</h2>

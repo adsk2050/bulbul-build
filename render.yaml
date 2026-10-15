@@ -7,7 +7,7 @@ services:
     plan: free
     region: singapore
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /bulbul-flash/
+    healthCheckPath: /flash-cricket/
     autoDeploy: true
     envVars:
       - key: SARVAM_API_KEY

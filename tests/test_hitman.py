@@ -1,4 +1,4 @@
-"""Bulbul Flash Cricket at /bulbul-flash/ (the 3D game): served, with its rules."""
+"""Bulbul Flash Cricket at /flash-cricket/ (the 3D game): served, with its rules."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ from bulbul_build.commentary import game_rules
 
 def test_page_redirects_to_directory(client):  # noqa: F811
     c, _ = client
-    r = c.get("/bulbul-flash", follow_redirects=False)
+    r = c.get("/flash-cricket", follow_redirects=False)
     assert r.status_code == 307
-    assert r.headers["location"] == "/bulbul-flash/"
+    assert r.headers["location"] == "/flash-cricket/"
 
 
 def test_old_names_are_gone(client):  # noqa: F811
@@ -22,7 +22,7 @@ def test_old_names_are_gone(client):  # noqa: F811
 
 def test_hitman_page_served_with_voice_and_credit(client):  # noqa: F811
     c, _ = client
-    r = c.get("/bulbul-flash/")
+    r = c.get("/flash-cricket/")
     assert r.status_code == 200
     assert "/static/hitman-voice.js" in r.text
     assert "ekcuttingchaidesign" in r.text
@@ -32,7 +32,7 @@ def test_hitman_page_served_with_voice_and_credit(client):  # noqa: F811
     assert "script-src 'self'" in csp and "unsafe-inline" not in csp.split("script-src")[1]
     assert "Hitman" not in r.text.split("<body>")[0]  # not in the title or meta
     assert "Bhaiya" not in r.text
-    assert c.get("/bulbul-flash/CREDITS.txt").status_code == 200
+    assert c.get("/flash-cricket/CREDITS.txt").status_code == 200
     assert c.get("/static/hitman-voice.js").status_code == 200
 
 
@@ -48,10 +48,10 @@ def test_public_site_hides_only_the_pixel_game(client, monkeypatch):  # noqa: F8
     c, _ = client
     monkeypatch.setattr(app_mod, "PUBLIC_SITE", True)
     assert c.get("/cricket").status_code == 404
-    for path in ("/", "/bulbul-flash/", "/talk", "/toys", "/m/udhaar-wapas", "/api/modes"):
+    for path in ("/", "/flash-cricket/", "/talk", "/toys", "/m/udhaar-wapas", "/api/modes"):
         assert c.get(path).status_code == 200, path
     home = c.get("/").text
-    assert home.index("/bulbul-flash/") < home.index("/talk") and "/cricket" not in home
+    assert home.index("/flash-cricket/") < home.index("/talk") and "/cricket" not in home
 
 
 def _clip(tmp_path, name: str, secs: int) -> bytes:

@@ -137,6 +137,7 @@
     waiting = null;
     c.ball = { kind, detail, state };
     c.id = id;
+    if (detail.runs === 6 || detail.runs === 4) toast(`🎬 ${detail.runs === 6 ? "SIX" : "FOUR"} saved to your highlights`);
     c.decidedAt = performance.now();
     clearTimeout(c.timer);
     c.timer = setTimeout(() => finish(c), AFTER_BALL);
@@ -497,7 +498,7 @@
     ctx.fillText("Sarvam AI", W / 2, by + 122);
     ctx.font = `700 26px ${FONT}`; ctx.fillStyle = "#e0761b";
     ctx.fillText("Live commentary · Bulbul Flash voice", W / 2, by + 165);
-    centred(ctx, location.host + "/bulbul-flash", 1100, 36, "#7fd3ff", 700);
+    centred(ctx, location.host + "/flash-cricket", 1100, 36, "#7fd3ff", 700);
   }
   function overlay(ctx, clip) {
     const d = clip.ball.detail || {};
@@ -528,24 +529,46 @@
     ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
   }
 
-  // ---- Share and Download on the end card ----
-  // Share opens the phone's share sheet (WhatsApp Status is one tap from there);
-  // Download keeps the file, for the gallery or a desktop. Where a page cannot
-  // share files, Download is the only button.
-  let row = null, shareBtn = null, saveBtn = null;
-  // Share only where it leads somewhere (WhatsApp Status is a phone thing); a desktop
-  // gets Download alone. Touch-first screens count as phones and tablets.
+  // ---- the Highlights widget on the end card ----
+  // Shown as soon as the innings ends: a header, a filling progress bar, and Share
+  // and Download visible but off, so the player knows they are coming. When the reel
+  // is ready the keys switch on and pulse, a short oven "ting" plays and a phone
+  // buzzes. Share opens the share sheet (WhatsApp Status is one tap from there) and
+  // shows only on phones and tablets; Download keeps the file.
+  let box = null, bar = null, head = null, shareBtn = null, saveBtn = null, announced = null;
   const onPhone = () => (navigator.userAgentData && navigator.userAgentData.mobile)
     || matchMedia("(pointer: coarse)").matches;
   const canShareFiles = () => {
     try { return onPhone() && !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.mp4", { type: "video/mp4" })] })); } catch (_) { return false; }
   };
+  (function css() {
+    const st = document.createElement("style");
+    st.textContent = `
+      #bb-share{flex:1 1 100%;margin:0 0 10px;padding:12px;border-radius:18px;background:rgba(10,20,32,.72);
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);font-family:var(--f-ui, system-ui)}
+      #bb-share .bb-head{display:flex;justify-content:space-between;align-items:baseline;color:#fff;
+        font:800 13px/1.2 var(--f-ui, system-ui);letter-spacing:.08em;margin:0 2px 8px}
+      #bb-share .bb-head i{font-style:normal;font-weight:700;color:#ffc93c;letter-spacing:0}
+      #bb-share .bb-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;margin:0 2px 10px}
+      #bb-share .bb-bar b{display:block;height:100%;width:0;border-radius:99px;background:#ffc93c;transition:width .15s linear}
+      #bb-share .bb-keys{display:flex;gap:10px}
+      #bb-share .bb-keys .k-cta{flex:1 1 0;min-width:0}
+      #bb-share .bb-keys .k-cta:disabled{opacity:.45;filter:grayscale(.6)}
+      #bb-share.is-ready .bb-bar{display:none}
+      #bb-share.is-ready .bb-keys .k-cta{animation:bb-pulse 1.1s ease-in-out 6}
+      @keyframes bb-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+      #bb-toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 92px);transform:translate(-50%,-12px);
+        z-index:2147483001;padding:8px 14px;border-radius:999px;background:rgba(10,20,32,.86);color:#fff;
+        font:800 14px/1.2 system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;pointer-events:none;
+        transition:opacity .25s,transform .25s;white-space:nowrap}
+      #bb-toast.on{opacity:1;transform:translate(-50%,0)}`;
+    document.head.appendChild(st);
+  })();
   // The game's own button (Kit.ts cta()): a coloured face on a ledge, its display font.
   function button(kind, onClick) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = `k-cta k-cta--${kind}`;
-    b.style.cssText = "flex:1 1 0;min-width:0";
     b.innerHTML = '<span class="k-cta-face"><span></span></span>';
     b.addEventListener("click", onClick);
     return b;
@@ -556,46 +579,78 @@
     const svg = iconFrom && document.querySelector(`${iconFrom} svg`);
     if (svg && !face.querySelector("svg")) face.prepend(svg.cloneNode(true));
   }
+  // An oven's "ting": one bright bell note that rings out.
+  function ting() {
+    try {
+      const a = new AC();
+      a.__bulbulNoTap = true;
+      const t0 = a.currentTime + 0.02;
+      [[1318.5, 0.35], [2637, 0.12], [3951, 0.05]].forEach(([f, peak]) => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(peak, t0 + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
+        o.connect(g).connect(a.destination);
+        o.start(t0); o.stop(t0 + 1.5);
+      });
+      setTimeout(() => a.close().catch(() => {}), 1800);
+    } catch (_) {}
+    try { navigator.vibrate && navigator.vibrate([90, 60, 90]); } catch (_) {}
+  }
   function renderButton() {
-    if (!row) {
-      row = document.createElement("div");
-      row.id = "bb-share";
-      row.style.cssText = "flex:1 1 100%;display:flex;gap:10px;margin:0 0 10px";
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "bb-share";
+      head = document.createElement("div");
+      head.className = "bb-head";
+      bar = document.createElement("div");
+      bar.className = "bb-bar";
+      bar.innerHTML = "<b></b>";
+      const keys = document.createElement("div");
+      keys.className = "bb-keys";
       shareBtn = button("share-wide", share);
       saveBtn = button("secondary", download);
-      if (canShareFiles()) row.append(shareBtn);
-      row.append(saveBtn);
-    }
-    if (!reel) { row.remove(); return; }
-    const ready = reel.state === "ready";
-    for (const b of [shareBtn, saveBtn]) b.disabled = !ready;
-    if (ready) {
-      saveBtn.firstChild.style.backgroundImage = "";
       label(shareBtn, "SHARE", "#mcard-share");
-      label(saveBtn, row.contains(shareBtn) ? "DOWNLOAD" : "DOWNLOAD HIGHLIGHTS");
-      saveBtn.style.display = shareBtn.style.display = "";
-    } else {
-      // One wide key, showing progress, until the file is ready.
-      label(saveBtn, reel.state === "building" ? `HIGHLIGHTS ${reel.progress || 0}%` : "NO HIGHLIGHTS THIS TIME");
-      // The key fills up behind its label as the reel is made.
-      const pct = reel.state === "building" ? reel.progress || 0 : 0;
-      saveBtn.firstChild.style.backgroundImage = pct
-        ? `linear-gradient(90deg, rgba(255,255,255,.32) ${pct}%, transparent ${pct}%)` : "";
-      // Disabled keys are dimmed by the game; this one is a progress bar, so it stays bright.
-      saveBtn.style.opacity = "1";
-      saveBtn.style.filter = "none";
-      shareBtn.style.display = "none";
-      saveBtn.style.display = "";
+      if (canShareFiles()) keys.append(shareBtn);
+      keys.append(saveBtn);
+      box.append(head, bar, keys);
     }
+    if (!reel) { box.remove(); return; }
+    const ready = reel.state === "ready", failed = reel.state === "failed";
+    for (const b of [shareBtn, saveBtn]) b.disabled = !ready;
+    label(saveBtn, keysHaveShare() ? "DOWNLOAD" : "DOWNLOAD HIGHLIGHTS");
+    box.classList.toggle("is-ready", ready);
+    head.innerHTML = ready ? "🎬 YOUR HIGHLIGHTS <i>ready!</i>"
+      : failed ? "🎬 NO HIGHLIGHTS THIS TIME"
+      : `🎬 YOUR HIGHLIGHTS <i>making… ${reel.progress || 0}%</i>`;
+    bar.firstChild.style.width = `${ready ? 100 : reel.progress || 0}%`;
+    box.style.display = failed ? "none" : "";
+    if (ready && announced !== reel) { announced = reel; ting(); }
     place();
   }
+  const keysHaveShare = () => !!(shareBtn && shareBtn.parentElement);
   function place() {
     const again = document.getElementById("again");
-    if (!row || !reel || !again || row.parentElement === again.parentElement) return;
+    if (!box || !reel || !again || box.parentElement === again.parentElement) return;
     again.parentElement.style.flexWrap = "wrap";
-    again.parentElement.insertBefore(row, again);
+    again.parentElement.insertBefore(box, again);
   }
   setInterval(place, 400); // the end card is rebuilt each innings
+
+  // During the match: a six or a four going into the highlights says so.
+  let toastEl = null, toastTimer = 0;
+  function toast(text) {
+    if (!toastEl) {
+      toastEl = document.createElement("div");
+      toastEl.id = "bb-toast";
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = text;
+    toastEl.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("on"), 2600);
+  }
 
   function download() {
     if (!reel || reel.state !== "ready") return;
@@ -606,7 +661,7 @@
   }
   async function share() {
     if (!reel || reel.state !== "ready") return;
-    const text = `Maine Bulbul Flash Cricket mein ${summary.runs} banaye, Bulbul ki live commentary ke saath! Tum beat karo: ${location.origin}/bulbul-flash/`;
+    const text = `Maine Bulbul Flash Cricket mein ${summary.runs} banaye, Bulbul ki live commentary ke saath! Tum beat karo: ${location.origin}/flash-cricket/`;
     try {
       await navigator.share({ files: [reel.file], text });
     } catch (e) {

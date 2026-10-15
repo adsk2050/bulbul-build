@@ -74,7 +74,7 @@ async def security(request: Request, call_next):
     if int(request.headers.get("content-length") or 0) > limit:
         return JSONResponse({"error": "request too large"}, status_code=413)
     resp = await call_next(request)
-    if request.url.path in ("/talk", "/cricket", "/bulbul-flash/") or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
+    if request.url.path in ("/talk", "/cricket", "/flash-cricket/") or (request.url.path.startswith("/static/") and "/art/" not in request.url.path):
         resp.headers["Cache-Control"] = "no-cache"  # always revalidate: a stale talk.js broke testing
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Referrer-Policy"] = "no-referrer"
@@ -89,7 +89,7 @@ async def security(request: Request, call_next):
         resp.headers["Content-Security-Policy"] = resp.headers["Content-Security-Policy"].replace(
             "script-src 'self'", "script-src 'self' 'unsafe-inline'"
         )
-    elif request.url.path.startswith("/bulbul-flash/"):
+    elif request.url.path.startswith("/flash-cricket/"):
         # The 3D game bundles its own font; everything else it loads is same-origin.
         resp.headers["Content-Security-Policy"] = resp.headers["Content-Security-Policy"].replace(
             "font-src https://fonts.gstatic.com", "font-src 'self' https://fonts.gstatic.com"
@@ -114,11 +114,11 @@ async def cricket_page():
     return FileResponse(WEB / "cricket.html")
 
 
-@app.get("/bulbul-flash")
-async def bulbul_flash_page():
+@app.get("/flash-cricket")
+async def flash_cricket_page():
     # The game resolves its assets (assets/, avatars/, lotties/) against the page URL,
     # so it has to be served from a directory path.
-    return RedirectResponse("/bulbul-flash/", status_code=307)
+    return RedirectResponse("/flash-cricket/", status_code=307)
 
 
 
@@ -178,7 +178,7 @@ async def cricket_ws(ws: WebSocket):
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 # Bulbul Flash Cricket: the open-source 3D game by ekcuttingchaidesign (upstream name
 # "Hitman Cricket"), built by tools/hitman/build.sh, with Bulbul on the mic.
-app.mount("/bulbul-flash", StaticFiles(directory=WEB / "hitman", html=True), name="bulbul-flash")
+app.mount("/flash-cricket", StaticFiles(directory=WEB / "hitman", html=True), name="flash-cricket")
 
 
 @app.get("/api/modes")

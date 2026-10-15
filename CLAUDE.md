@@ -105,7 +105,7 @@ and fillers, `web/talk.js` the mic, VAD, playback, sprites and share clip.
   `data/utterances/`.
 - Art: `scripts/make_art.py` (OpenAI images, paid; `build` step is free).
 
-## Bulbul Flash Cricket (`/bulbul-flash/`, the 3D game)
+## Bulbul Flash Cricket (`/flash-cricket/`, the 3D game)
 
 An open-source 3D batting game by ekcuttingchaidesign (upstream name "Hitman
 Cricket") with Bulbul, the commentator, live on every ball. Earlier names
