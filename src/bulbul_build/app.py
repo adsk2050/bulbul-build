@@ -41,6 +41,10 @@ UNCLE = settings.cache_dir.parent / "uncle"  # recorded fillers, scripts/make_fi
 MAX_TALKERS_PER_IP = 2
 TALK_LOG = settings.cache_dir.parent / "talk-log.jsonl"
 UTTERANCES = settings.cache_dir.parent / "utterances"
+# The public site serves the 3D game alone: no Talking Bulbul (paid STT) and no
+# form toys, so nothing else can spend the shared budget. Locally everything is on.
+GAME_ONLY = os.environ.get("GAME_ONLY") == "1"
+GAME_ONLY_PATHS = ("/bulbul-flash", "/static/")
 CRICKET_LOG = settings.cache_dir.parent / "cricket-log.jsonl"  # each event and the line it got  # what STT heard, for comparing STT settings  # visitor lines and replies, for tuning
 
 
@@ -58,6 +62,10 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 
 @app.middleware("http")
 async def security(request: Request, call_next):
+    if GAME_ONLY and not request.url.path.startswith(GAME_ONLY_PATHS):
+        if request.url.path == "/":
+            return RedirectResponse("/bulbul-flash/", status_code=302)
+        return JSONResponse({"error": "not found"}, status_code=404)
     limit = MAX_CLIP if request.url.path == "/api/clip" else MAX_BODY
     if int(request.headers.get("content-length") or 0) > limit:
         return JSONResponse({"error": "request too large"}, status_code=413)
@@ -125,7 +133,7 @@ _talkers: dict[str, int] = {}
 @app.websocket("/ws/talk")
 async def talk_ws(ws: WebSocket):
     ip = limiter.client_ip(ws)
-    if _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
+    if GAME_ONLY or _talkers.get(ip, 0) >= MAX_TALKERS_PER_IP or not limiter.allow(ip):
         await ws.close(code=1013)
         return
     await ws.accept()
@@ -274,4 +282,5 @@ def main() -> None:
     import uvicorn
 
     logging.basicConfig(level=logging.INFO)
-    uvicorn.run("bulbul_build.app:app", host="127.0.0.1", port=settings.port)
+    # HOST=0.0.0.0 only inside a container; on this machine it stays on localhost.
+    uvicorn.run("bulbul_build.app:app", host=os.environ.get("HOST", "127.0.0.1"), port=settings.port)

@@ -40,3 +40,17 @@ def test_hitman_rules_loaded_for_commentator():
     rules = game_rules("hitman")
     assert "Bulbul Flash Cricket" in rules and "Hitman" not in rules and "Bhaiya" not in rules
     assert "in_air" in rules and "timing_ms" in rules
+
+
+def test_game_only_site_serves_nothing_else(client, monkeypatch):  # noqa: F811
+    from bulbul_build import app as app_mod
+
+    c, _ = client
+    monkeypatch.setattr(app_mod, "GAME_ONLY", True)
+    assert c.get("/bulbul-flash/").status_code == 200
+    assert c.get("/static/hitman-reel.js").status_code == 200
+    r = c.get("/", follow_redirects=False)
+    assert r.status_code == 302 and r.headers["location"] == "/bulbul-flash/"
+    for path in ("/talk", "/cricket", "/m/udhaar-wapas", "/api/modes", "/api/budget"):
+        assert c.get(path).status_code == 404, path
+    assert c.post("/api/udhaar-wapas", json={}).status_code == 404
