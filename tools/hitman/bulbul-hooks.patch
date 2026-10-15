@@ -1,6 +1,6 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 02:47:54.455639700 +0530
-+++ b/index.html	2026-10-15 02:47:54.482189200 +0530
+--- a/index.html	2026-10-15 07:47:48.263796000 +0530
++++ b/index.html	2026-10-15 07:47:48.289957700 +0530
 @@ -1,27 +1,29 @@
 -<!doctype html>
 -<html lang="en">
@@ -59,8 +59,8 @@ diff -ruN a/index.html b/index.html
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 02:47:54.241742800 +0530
-+++ b/src/Game.ts	2026-10-15 02:47:54.271109500 +0530
+--- a/src/Game.ts	2026-10-15 07:47:48.406498500 +0530
++++ b/src/Game.ts	2026-10-15 07:47:48.434086800 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
@@ -69,6 +69,24 @@ diff -ruN a/src/Game.ts b/src/Game.ts
  import { Health } from './game/Health';
  import { TAILENDER, endingOf, resolveSurvive, resultOf, sledgeDue, teamScore } from './game/Survive';
  import { EASE, easeFor, easedSkill, easedWindows, notePlayed, playedIn, seedPlayed } from './game/newcomer';
+@@ -24,7 +25,7 @@
+ import { SeededRandom } from './game/SeededRandom';
+ import { ShuffleBag } from './game/ShuffleBag';
+ import { MARK_OF, milestoneOf, nearingEnd, nearingOf, type Milestone, type Moment, type Nearing } from './game/milestone';
+-import { type Celebration, celebrationLength } from './entities/Batter';
++import { type Celebration, celebrationLength, STROKE_DURATION_MS } from './entities/Batter';
+ import { advanceShot, gradeOf, loftedDrive, playedAs, scoopLine, scoopShot, scoopable, slogSweep, sweeps, chargeable, sweepable, resolveShot } from './game/ShotResolver';
+ import { TUTORIAL, tutorialDelivery, tutorialOutcome } from './game/Tutorial';
+ import type { Delivery, Ending, GamePhase, ShotAttempt, ShotOutcome, ShotType } from './game/types';
+@@ -578,7 +579,7 @@
+       () => this.charged,
+       // A left-hander's swipes and side keys, read the way his mirrored
+       // screen shows them. Asked of the scene, so the two cannot disagree.
+-      () => this.scene.mirrored);
++      () => this.scene.mirrored, this.feint);
+     // The play key opens the picker rather than an innings — unless a link has
+     // already named the mode, in which case it is that mode's play key.
+     this.hud.on('start', this.play);
 @@ -1746,7 +1747,18 @@
      this.setPhase('READY');
      (document.activeElement as HTMLElement | null)?.blur();
@@ -88,7 +106,27 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    /**
     * The Marathon's rules, the first two times one starts: the bowler waits at
     * his mark until the last card is put away, the way he waits for a banner.
-@@ -3120,6 +3132,7 @@
+@@ -2056,6 +2068,19 @@
+     this.hud.levelBanner(banner, over + 1, LEVEL_BANNER_MS);
+     this.bannerUntil = this.elapsed + LEVEL_BANNER_MS;
+   }
++  /**
++   * Bulbul build: a key or swipe before the ball is bowled plays a stroke at
++   * nothing, so every press gets an answer. It scores nothing, and one already
++   * under way is not cut short.
++   */
++  private feintAt = -Infinity;
++  private feint = (shot: ShotType) => {
++    if (this.phase !== 'READY' && this.phase !== 'BOWLER_RUNUP') return;
++    const now = performance.now();
++    if (now - this.feintAt < STROKE_DURATION_MS) return;
++    this.feintAt = now;
++    this.scene.feint(shot, this.elapsed);
++  };
+   private shoot = (shot: ShotType, inputTimeMs: number) => {
+     if (this.phase !== 'BALL_IN_FLIGHT' || this.attempt) return;
+     // The first swing of the session, tutorial or not: a player who never plays
+@@ -3120,6 +3145,7 @@
    }
    private resolve() {
      const step = this.lesson >= 0 ? TUTORIAL[this.lesson] : null;
@@ -96,7 +134,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      this.outcome = step ? tutorialOutcome(step, this.delivery!, this.attempt)
        : this.marathon ? this.marathonBall()
        : this.surviving ? resolveSurvive(this.delivery!, this.attempt, this.rng, easedSkill(TAILENDER, this.ease))
-@@ -3179,6 +3192,20 @@
+@@ -3179,6 +3205,20 @@
      this.resultPresented = false; this.contactPlayed = false;
      this.setPhase('SHOT_RESOLVE');
      if (this.outcome.aerial) this.hud.airborne();
@@ -117,7 +155,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    }
    /**
     * The wait, moved on by the ball just played. With the score, not after
-@@ -3977,6 +4004,11 @@
+@@ -3977,6 +4017,11 @@
  
    private end() {
      this.setPhase('INNINGS_END');
@@ -130,8 +168,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 02:47:54.354251200 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 02:47:54.375439200 +0530
+--- a/src/game/InputManager.ts	2026-10-15 07:47:48.545403300 +0530
++++ b/src/game/InputManager.ts	2026-10-15 07:47:48.580139700 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -139,7 +177,40 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
  /**
   * The three shot keys, with the arrow keys as the same three. Normalising here
   * rather than in `mapKeys` means combos, held keys and every downstream rule
-@@ -121,6 +122,7 @@
+@@ -94,7 +95,8 @@
+    * swipe or a side key is read the other way round: his pull is a swipe to
+    * the right, exactly where his leg side now is.
+    */
+-  constructor(private active: () => boolean, private now: (at?: number) => number, private shoot: (shot: ShotType, time: number) => void, private surface?: HTMLElement, private coverLean: () => number = () => 0, private scoops: () => boolean = () => false, private mirrored: () => boolean = () => false) {
++  /** `feint`: a key or swipe while no ball is live, so the batter can still move (Bulbul build). */
++  constructor(private active: () => boolean, private now: (at?: number) => number, private shoot: (shot: ShotType, time: number) => void, private surface?: HTMLElement, private coverLean: () => number = () => 0, private scoops: () => boolean = () => false, private mirrored: () => boolean = () => false, private feint: (shot: ShotType) => void = () => {}) {
+     window.addEventListener('keydown', this.down);
+     window.addEventListener('keyup', this.up);
+     surface?.addEventListener('pointerdown', this.pointerDown);
+@@ -106,14 +108,20 @@
+   private pointerDown = (event: PointerEvent) => {
+     if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+     if (!event.isPrimary) { this.cancelGesture(); return; }
+-    if (!this.active() || this.used || this.pending) return;
++    if (this.active() && (this.used || this.pending)) return;
+     if (event.target instanceof Element && event.target.closest('button, a, dialog, .modal-overlay, .intro-panel')) return;
+     this.gesture = { id: event.pointerId, x: event.clientX, y: event.clientY };
+     this.surface?.setPointerCapture(event.pointerId);
+   };
+   private pointerMove = (event: PointerEvent) => {
+     if (!this.gesture || event.pointerId !== this.gesture.id) return;
+-    if (!this.active() || this.used) { this.cancelGesture(); return; }
++    if (!this.active()) {
++      const across = (event.clientX - this.gesture.x) * (this.mirrored() ? -1 : 1);
++      const shot = mapSwipe(across, event.clientY - this.gesture.y);
++      if (shot) { this.cancelGesture(); this.feint(shot); }
++      return;
++    }
++    if (this.used) { this.cancelGesture(); return; }
+     event.preventDefault();
+     const across = (event.clientX - this.gesture.x) * (this.mirrored() ? -1 : 1);
+     const shot = mapSwipe(across, event.clientY - this.gesture.y, this.coverLean(), this.scoops());
+@@ -121,6 +129,7 @@
      // Commit at recognition: resting a thumb cannot bank an earlier shot, and
      // a longer swipe adds no delay after its direction is already clear.
      const time = this.now(event.timeStamp);
@@ -147,7 +218,17 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
      this.used = true; this.pending = null; this.cancelGesture(); this.shoot(shot, time);
    };
    private pointerUp = (event: PointerEvent) => {
-@@ -162,6 +164,7 @@
+@@ -136,7 +145,8 @@
+   private side(key: ReturnType<typeof shotKey>) { return this.mirrored() ? mirrorKey(key) : key; }
+   private down = (event: KeyboardEvent) => {
+     const key = this.side(shotKey(event.key));
+-    if (!key || !this.active()) return;
++    if (!key) return;
++    if (!this.active()) { if (!event.repeat) this.feint(mapKeys([key]) ?? 'STRAIGHT'); return; }
+     event.preventDefault();
+     if (event.repeat || this.held.has(key) || this.used) return;
+     this.held.add(key);
+@@ -162,6 +172,7 @@
    private resolve(shot: ShotType) {
      if (!this.pending) return;
      const time = this.pending.time; // Preserve initial press; combo recognition adds no timing penalty.
@@ -156,8 +237,8 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
    }
    flush(time: number) {
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts
-+++ b/src/main.ts
+--- a/src/main.ts	2026-10-15 07:47:48.700244600 +0530
++++ b/src/main.ts	2026-10-15 07:47:48.725702600 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -169,3 +250,15 @@ diff -ruN a/src/main.ts b/src/main.ts
    window.addEventListener('pagehide', () => game.dispose(), { once: true });
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
+diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
+--- a/src/scene/GameScene.ts	2026-10-15 07:47:48.832286300 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 07:47:48.863555300 +0530
+@@ -996,6 +996,8 @@
+   private static meetsAt(charging: boolean) {
+     return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
+   }
++  /** Bulbul build: a stroke played at no ball, so a press before the delivery still moves him. */
++  feint(shot: ShotType, now: number) { this.batter.swing(shot, now, 0); }
+   swing(shot: ShotType, now: number, delivery: Delivery, charging = false, lofted = false, sweeping = false, levelled = false) {
+     const contact = this.flight(delivery, GameScene.meetsAt(charging));
+     this.batter.swing(shot, now, contact.x, contact.y, contact.z, charging, lofted, sweeping, levelled);
