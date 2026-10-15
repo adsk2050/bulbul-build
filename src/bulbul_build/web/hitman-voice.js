@@ -231,6 +231,36 @@
     }
   }, 150);
 
+  // ---- past matches, kept in this browser so the start line can coach from them ----
+  const HISTORY_KEY = "bulbul-hitman-history";
+  function readHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (_) { return []; }
+  }
+  function keepMatch(detail) {
+    const p = player();
+    const weak = Object.entries(p.against).filter(([, v]) => / [1-9]\d* out/.test(v)).map(([k]) => k);
+    const match = {
+      runs: detail.runs ?? null, balls: detail.balls ?? null, wickets: detail.wickets ?? null,
+      fours: h.fours, sixes: h.sixes, timing: p.timing, dismissals: p.dismissals,
+      favourite_shots: p.favourite_shots, out_to: weak, wrong_shot_for_the_line: h.offLine,
+    };
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify([...readHistory(), match].slice(-10))); } catch (_) {}
+  }
+  function pastMatches() {
+    const all = readHistory();
+    if (!all.length) return { matches_played: 0 };
+    const runs = all.map((m) => m.runs || 0);
+    const early = all.reduce((s, m) => s + (m.timing?.early || 0), 0);
+    const late = all.reduce((s, m) => s + (m.timing?.late || 0), 0);
+    return {
+      matches_played: all.length,
+      average_runs: Math.round(runs.reduce((a, b) => a + b, 0) / all.length),
+      best_runs: Math.max(...runs),
+      timing_across_matches: { early, late },
+      last_matches: all.slice(-3),
+    };
+  }
+
   window.bulbulCommentary = {
     event(kind, detail, state) {
       detail = detail || {};
@@ -239,9 +269,10 @@
         for (const k of ["balls", "swings", "early", "late", "onTime", "sumTiming", "timed", "offLine", "leftAlone", "sixes", "fours", "dots"]) h[k] = 0;
         h.shots = {}; h.outs = {}; h.vs = {}; h.recent = [];
         held = null;
-        return send(kind, detail, state);
+        return send(kind, { ...detail, history: pastMatches() }, state);
       }
       learn(kind, detail);
+      if (kind === "end") keepMatch(detail);
       if (kind === "over" || kind === "end") {
         held = { kind, detail, state, until: performance.now() + (kind === "end" ? 4000 : 6000) };
         return;

@@ -78,7 +78,9 @@ Return JSON: {"line": "..."} with at most WORDS words.
 """
 
 KIND_HINT = {
-    "start": "The match is starting: set the scene (target, balls, bowler, pitch) in one breath.",
+    "start": "The match is starting. If detail.history shows past matches, give ONE specific tip "
+             "from them (their usual mistake: timing, the ball that gets them out, the wrong shot) "
+             "and the number to beat; for a first match, welcome them and set the scene in one breath.",
     "ball": "The bowler is running in: a quick build-up line.",
     "hit": "The batter just hit the ball: call the shot and the runs. If detail.in_air is true the ball is still in the air: build the suspense and give the result last.",
     "miss": "The batter missed or did not swing and the ball went past.",
@@ -86,7 +88,7 @@ KIND_HINT = {
     "over": "End of the over: give ONE specific coaching tip from the player's timing stats.",
     "end": "Match over: call the last ball (detail.last_ball) and the verdict, win or lose, with a cheeky line to make them play again.",
 }
-WORDS = {"over": 22, "end": 22, "start": 20}
+WORDS = {"over": 22, "end": 22, "start": 26}
 NAME_GAP = 3  # lines that must pass before the name is used again
 
 

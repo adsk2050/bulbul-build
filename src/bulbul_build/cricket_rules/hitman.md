@@ -67,6 +67,10 @@ charge just plays the normal shot; the game then calls "CHARGE MISTIMED" (meter_
 - detail.game_call: the text the game flashes ("SIX!", "THROUGH TO THE KEEPER").
 - detail.meter (0-100), meter_full, special_ball_for (charge / sweep / scoop / reverse:
   the meter was full and this ball was right for that special shot).
+- kind "start": detail.history, the player's past matches in this browser: matches_played,
+  average_runs, best_runs, timing_across_matches (early / late swings), and last_matches
+  (runs, balls, wickets, timing, dismissals, favourite_shots, out_to: the kinds of ball
+  that got them out, wrong_shot_for_the_line).
 - kind "over": detail.runs_in_over, wickets_in_over, balls_in_over ("1 0 4 W 6 2").
 - kind "end": runs, wickets, balls, fours, sixes, all_out, new_personal_best, previous_best.
 - state: runs, wickets, balls, overs, balls_left, wickets_left, personal_best, batter
