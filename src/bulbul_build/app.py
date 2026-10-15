@@ -252,6 +252,15 @@ async def join_reel(request: Request):
     return Response(mp4, media_type="video/mp4")
 
 
+@app.post("/api/reel-share-failed")
+async def reel_share_failed(request: Request, name: str = "", type: str = "", kb: int = 0):
+    """A phone's share sheet refused the reel: log the error's name to diagnose it."""
+    if limiter.allow(limiter.client_ip(request)):
+        log.warning("reel share failed: %s type=%s kb=%d ua=%s", name[:40], type[:40], kb,
+                    (request.headers.get("user-agent") or "")[:120])
+    return Response(status_code=204)
+
+
 @app.get("/clip/{name}")
 async def clip_file(name: str):
     if not (name.endswith(".mp4") and name[:-4].isalnum()):

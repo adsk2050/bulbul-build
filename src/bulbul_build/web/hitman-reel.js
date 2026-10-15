@@ -432,7 +432,9 @@
     await sleep(450);
     if (mine !== innings) return;
     const name = `bulbul-flash-${summary.runs}-${summary.wickets}.${(blob.type || MIME).includes("webm") ? "webm" : "mp4"}`;
-    reel = { state: "ready", file: new File([blob], name, { type: blob.type || "video/mp4" }) };
+    // A plain type: Android's share sheet turns down "video/mp4;codecs=...".
+    const type = (blob.type || MIME).split(";")[0];
+    reel = { state: "ready", file: new File([blob], name, { type }) };
     renderButton();
   }
 
@@ -609,7 +611,11 @@
       await navigator.share({ files: [reel.file], text });
     } catch (e) {
       // Never a silent download: say so, and leave Download beside it.
-      if (e.name !== "AbortError") label(shareBtn, "SHARE DIDN'T OPEN, USE DOWNLOAD");
+      if (e.name !== "AbortError") {
+        label(shareBtn, `SHARE FAILED (${e.name}), USE DOWNLOAD`);
+        // The error's name only, so a failing phone can be diagnosed from the server log.
+        fetch(`/api/reel-share-failed?name=${encodeURIComponent(e.name)}&type=${encodeURIComponent(reel.file.type)}&kb=${Math.round(reel.file.size / 1024)}`, { method: "POST" }).catch(() => {});
+      }
       console.warn("[reel] share", e);
     }
   }
