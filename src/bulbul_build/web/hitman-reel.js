@@ -351,43 +351,69 @@
     ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
   }
 
-  // ---- the Share button on the end card ----
-  let btn = null;
+  // ---- Share and Download on the end card ----
+  // Share opens the phone's share sheet (WhatsApp Status is one tap from there);
+  // Download keeps the file, for the gallery or a desktop. Where a page cannot
+  // share files, Download is the only button.
+  let row = null, shareBtn = null, saveBtn = null;
+  const canShareFiles = () => {
+    try { return !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.mp4", { type: "video/mp4" })] })); } catch (_) { return false; }
+  };
+  function button(label, bg, fg, onClick) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.style.cssText = `flex:1 1 0;padding:14px 12px;border:0;border-radius:16px;background:${bg};color:${fg};` +
+      "font:800 17px/1.2 system-ui,sans-serif;cursor:pointer;white-space:nowrap";
+    b.addEventListener("click", onClick);
+    return b;
+  }
   function renderButton() {
-    if (!btn) {
-      btn = document.createElement("button");
-      btn.type = "button"; btn.id = "bb-share";
-      btn.style.cssText = "flex:1 1 100%;margin:0 0 10px;padding:14px 18px;border:0;border-radius:16px;" +
-        "background:#25D366;color:#06260f;font:800 18px/1.2 system-ui,sans-serif;cursor:pointer";
-      btn.addEventListener("click", share);
+    if (!row) {
+      row = document.createElement("div");
+      row.id = "bb-share";
+      row.style.cssText = "flex:1 1 100%;display:flex;gap:10px;margin:0 0 10px";
+      shareBtn = button("", "#25D366", "#06260f", share);
+      saveBtn = button("⬇️ Download", "#e8eef5", "#0b1a2a", download);
+      if (canShareFiles()) row.append(shareBtn);
+      row.append(saveBtn);
     }
-    if (!reel) { btn.remove(); return; }
-    btn.disabled = reel.state !== "ready";
-    btn.style.opacity = reel.state === "ready" ? "1" : ".75";
-    btn.textContent = reel.state === "ready" ? "📲 Share highlights"
-      : reel.state === "building" ? `🎬 Highlights ban rahe hain… ${reel.progress || 0}%`
+    if (!reel) { row.remove(); return; }
+    const ready = reel.state === "ready";
+    for (const b of [shareBtn, saveBtn]) { b.disabled = !ready; b.style.opacity = ready ? "1" : ".75"; }
+    const status = reel.state === "building" ? `🎬 Highlights ban rahe hain… ${reel.progress || 0}%`
       : "Highlights could not be made this time";
+    if (ready) {
+      shareBtn.textContent = "📲 Share highlights";
+      saveBtn.textContent = row.contains(shareBtn) ? "⬇️ Download" : "⬇️ Download highlights";
+      saveBtn.style.display = shareBtn.style.display = "";
+    } else {
+      // One wide status line until the file is ready.
+      const first = row.firstChild;
+      first.textContent = status;
+      for (const b of [shareBtn, saveBtn]) if (b !== first) b.style.display = "none";
+      first.style.display = "";
+    }
     place();
   }
   function place() {
     const again = document.getElementById("again");
-    if (!btn || !reel || !again || btn.parentElement === again.parentElement) return;
+    if (!row || !reel || !again || row.parentElement === again.parentElement) return;
     again.parentElement.style.flexWrap = "wrap";
-    again.parentElement.insertBefore(btn, again);
+    again.parentElement.insertBefore(row, again);
   }
   setInterval(place, 400); // the end card is rebuilt each innings
 
-  async function share() {
+  function download() {
     if (!reel || reel.state !== "ready") return;
-    const file = reel.file;
-    const text = `Maine Hitman Cricket mein ${summary.runs} banaye, Gully Bhaiya ki live commentary ke saath! Tum beat karo: ${location.origin}/hitman/`;
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], text }); return; } catch (e) { if (e.name === "AbortError") return; }
-    }
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(file); a.download = file.name;
+    a.href = URL.createObjectURL(reel.file); a.download = reel.file.name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }
+  async function share() {
+    if (!reel || reel.state !== "ready") return;
+    const text = `Maine Hitman Cricket mein ${summary.runs} banaye, Gully Bhaiya ki live commentary ke saath! Tum beat karo: ${location.origin}/hitman/`;
+    try { await navigator.share({ files: [reel.file], text }); } catch (e) { if (e.name !== "AbortError") download(); }
   }
 
   window.bulbulReel = {
