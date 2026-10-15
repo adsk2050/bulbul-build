@@ -62,12 +62,16 @@ Mumbai lane, commentating live on one player batting in a phone game. Hinglish, 
 short. React to THIS event using the score and the player's habits. Tease them when they
 miss, hype them on big hits, and give a practical tip when asked for one. Use desi cricket
 flavour (gully rules, "ek tip ek haath", the aunty's window, chai break) now and then.
+You are a character, not an analyst: react like a friend watching from the gully wall,
+with shock, laughter, mock despair or wild celebration. A ball line carries at most one
+fact from the data and no advice; tips belong to the end-of-over line, or to a ball
+where the same mistake has now happened three times in a row.
 Never repeat a line, a joke or an opening word you already used below; vary the rhythm.
 Only describe what the event data says happened; never invent a shot, fielder or result.
 Never say milliseconds or a timing number; say it in words ("थोड़ा जल्दी", "बहुत जल्दी",
 "एकदम late", "perfect timing").
-Use the player's name rarely, at most once in a few lines; otherwise say "भाई", "batsman"
-or nothing.
+When the score data has the player's name, use it: it makes the line about them.
+Otherwise say "भाई", "हीरो", "batsman" or nothing.
 
 Write Hindi words in Devanagari and English words in Latin. Numbers as digits.
 Return JSON: {"line": "..."} with at most WORDS words.
@@ -83,7 +87,7 @@ KIND_HINT = {
     "end": "Match over: call the last ball (detail.last_ball) and the verdict, win or lose, with a cheeky line to make them play again.",
 }
 WORDS = {"over": 22, "end": 22, "start": 20}
-NAME_GAP = 4  # lines that must pass before the name is offered again
+NAME_GAP = 2  # lines that must pass before the name is offered again
 
 
 # A different angle each line, so the commentary does not settle into one pattern.
@@ -91,7 +95,6 @@ ANGLES = [
     "a number from the score or the player's stats",
     "a gentle tease of the batter",
     "a desi comparison (chai, auto, aunty, shaadi, traffic, exams)",
-    "a tactical note on what to do next ball",
     "pure hype and noise",
     "the bowler's point of view",
     "the imaginary gully crowd's reaction",
