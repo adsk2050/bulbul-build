@@ -17,7 +17,9 @@
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return;
 
   const MAX_REEL = 30;      // seconds, end card included
-  const OUTRO = 2.6;        // seconds of end card
+  const RESERVE = 7;        // seconds kept free for the innings' last ball
+  const FOURS_UNTIL = 12;   // fours go in only while the reel is shorter than this, so later sixes fit
+  const OUTRO = 2.6;       // seconds of end card
   const AFTER_BALL = 3200;  // ms of picture kept after the ball is decided
   const LINE_WAIT = 9000;   // ms to wait for a ball's line before cutting without it
   const RATE = 24000;       // the line audio's sample rate
@@ -151,7 +153,11 @@
     if (c.innings !== innings || !c.ball) return;
     c.blob = new Blob(c.chunks, { type: MIME });
     c.score = worth(c.ball.kind, c.ball.detail);
-    if (c.score >= 4) queue.push(c);
+    // Sixes always; fours while there is plenty of room; wickets only as the ending
+    // (the last ball). A reel of getting out is not one anybody posts.
+    const runs = c.ball.detail.runs;
+    c.final = !!summary;
+    if (c.final || runs === 6 || (runs === 4 && (cut ? cut.used : 0) < FOURS_UNTIL)) queue.push(c);
     else { spare.push(c); spare = spare.slice(-3); }
     pump();
   }
@@ -198,7 +204,7 @@
     if ((c && c.busy) || !queue.length || !lineReady(queue[0])) return;
     const clip = queue.shift();
     const p = plan(clip);
-    const room = MAX_REEL - OUTRO - (c ? c.used : 0);
+    const room = MAX_REEL - OUTRO - (c ? c.used : 0) - (clip.final ? 0 : RESERVE);
     if (p.len > room) return pump(); // too long for what is left; a shorter one may fit
     await play(cutter(), clip, p);
     pump();
