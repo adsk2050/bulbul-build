@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from . import audio, config
+from . import alerts, audio, config
 from .budget import BudgetExceeded, Caps, Ledger, cost_of
 from .guard import LineQuota, RateLimiter, masked_chain
 from .modes import REGISTRY, load_all
@@ -55,7 +55,11 @@ async def lifespan(app: FastAPI):
     load_all()
     OUT.mkdir(parents=True, exist_ok=True)
     app.state.sarvam = Sarvam(settings.sarvam_api_key, ledger, settings.cache_dir)
+    topic = os.environ.get("NTFY_TOPIC", "")
+    watcher = asyncio.create_task(alerts.watch(ledger, topic)) if topic else None
     yield
+    if watcher:
+        watcher.cancel()
     await app.state.sarvam.aclose()
 
 

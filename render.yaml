@@ -12,6 +12,10 @@ services:
     envVars:
       - key: SARVAM_API_KEY
         sync: false
+      # Spend alerts to your phone (ntfy app, subscribe to this topic). Secret: anyone
+      # who knows the name can read the alerts.
+      - key: NTFY_TOPIC
+        sync: false
       - key: DAILY_BUDGET_INR
         value: "100"
       - key: TOTAL_BUDGET_INR
