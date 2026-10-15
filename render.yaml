@@ -13,9 +13,9 @@ services:
       - key: SARVAM_API_KEY
         sync: false
       - key: DAILY_BUDGET_INR
-        value: "25"
+        value: "100"
       - key: TOTAL_BUDGET_INR
-        value: "75"
+        value: "250"
       - key: PER_CALL_BUDGET_INR
         value: "2"
       - key: LINES_PER_IP_HOUR
