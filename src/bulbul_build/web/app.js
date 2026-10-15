@@ -19,7 +19,8 @@ function showPicker() {
   for (const m of modes) {
     const a = document.createElement("a");
     a.className = "tile";
-    a.href = `/m/${m.slug}`;
+    // The Lab is slides on the author's site, as on the home page.
+    a.href = m.slug === "bulbul-lab" ? "https://adsk2050.github.io/blog/speech-you-can-hear.html" : `/m/${m.slug}`;
     const s = document.createElement("strong");
     s.textContent = m.name;
     const p = document.createElement("span");
