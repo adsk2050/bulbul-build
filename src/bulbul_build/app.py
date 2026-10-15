@@ -223,45 +223,6 @@ async def make_clip(request: Request):
     return {"url": f"/clip/{token}.mp4"}
 
 
-MAX_REEL_PARTS = 9  # up to 8 highlight segments and the end card
-_reel_slot = asyncio.Semaphore(1)  # one join at a time on a small CPU
-
-
-@app.post("/api/reel")
-async def join_reel(request: Request):
-    """Join the highlight segments the browser cut during the match into one MP4.
-
-    The body is the segments back to back; X-Parts lists their byte sizes in order.
-    No Sarvam call: only ffmpeg, mostly without re-encoding.
-    """
-    if not limiter.allow(limiter.client_ip(request)):
-        raise HTTPException(429, "Thoda ruko! Too many requests, try again in a minute.")
-    kind = request.headers.get("content-type", "")
-    suffix = ".mp4" if "mp4" in kind else ".webm" if "webm" in kind else None
-    if suffix is None:
-        raise HTTPException(415, "send video/webm or video/mp4")
-    try:
-        sizes = [int(x) for x in request.headers.get("x-parts", "").split(",") if x.strip()]
-    except ValueError:
-        raise HTTPException(400, "bad X-Parts") from None
-    if not 1 <= len(sizes) <= MAX_REEL_PARTS or min(sizes) <= 0:
-        raise HTTPException(400, "bad X-Parts")
-    body = await request.body()
-    if len(body) != sum(sizes) or len(body) > MAX_CLIP:
-        raise HTTPException(413, "reel too large")
-    parts, at = [], 0
-    for n in sizes:
-        parts.append(body[at:at + n])
-        at += n
-    try:
-        async with _reel_slot:
-            mp4 = await asyncio.to_thread(audio.join_mp4, parts, suffix)
-    except Exception as e:  # ffmpeg failed on a bad upload
-        log.warning("reel join failed: %s", e)
-        raise HTTPException(422, "Could not make the video.") from e
-    return Response(mp4, media_type="video/mp4")
-
-
 @app.post("/api/reel-share-failed")
 async def reel_share_failed(request: Request, name: str = "", type: str = "", kb: int = 0):
     """A phone's share sheet refused the reel: log the error's name to diagnose it."""

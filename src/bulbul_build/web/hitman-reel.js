@@ -4,20 +4,21 @@
 // Every ball is recorded in the browser from the bowler's run-up: the game's
 // canvas and the game's own sound. Bulbul's voice is not taken from that
 // recording; every line's audio arrives whole from the server (hitman-voice.js
-// hands it over), so each clip gets its line complete and clean. Each four, six
-// and wicket is cut into its own finished segment as soon as its line is in; at
-// the end the best of the whole match (30 s at most, the last ball always in) are
-// joined on the server without re-encoding, with an end card and its sting.
+// hands it over), so each clip gets its line complete and clean. A ball worth
+// showing (four, six, wicket) is cut into the reel as soon as its line is in,
+// with the recorder paused in between, so when the innings ends only the end
+// card is left to add. The reel is 30 seconds at most and never cuts a line.
 //
 // The end card gets a Share button: the phone's share sheet (WhatsApp Status is
 // one tap from there) or, where a page cannot share files, a download.
-// The only server call is /api/reel (ffmpeg joins the segments); no Sarvam cost.
+// Nothing here talks to the server or costs anything.
 
 (function () {
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return;
 
   const MAX_REEL = 30;      // seconds, end card included
-  const KEEP_SEGMENTS = 8;  // finished highlight segments held while the innings goes on
+  const RESERVE = 7;        // seconds kept free for the innings' last ball
+  const FOURS_UNTIL = 12;   // fours go in only while the reel is shorter than this, so later sixes fit
   const OUTRO = 2.6;       // seconds of end card
   const AFTER_BALL = 3200;  // ms of picture kept after the ball is decided
   const LINE_WAIT = 9000;   // ms to wait for a ball's line before cutting without it
@@ -109,13 +110,6 @@
   let summary = null;
   let reel = null;     // { state, progress, file }
 
-  function worth(kind, d) {
-    if (kind === "wicket") return d.how === "caught" || d.how === "caught behind" ? 6 : 5;
-    if (d.runs === 6) return 7;
-    if (d.runs === 4) return 4;
-    return d.runs > 0 ? 1 : 0;
-  }
-
   function runup() {
     if (summary) return;
     if (waiting) finish(waiting); // a run-up that never became a ball
@@ -137,7 +131,7 @@
     waiting = null;
     c.ball = { kind, detail, state };
     c.id = id;
-    if (detail.runs === 6 || detail.runs === 4) toast(`🎬 ${detail.runs === 6 ? "SIX" : "FOUR"} saved to your highlights`);
+    if (keeps(detail.runs)) toast(`🎬 ${detail.runs === 6 ? "SIX" : "FOUR"} saved to your highlights`);
     c.decidedAt = performance.now();
     clearTimeout(c.timer);
     c.timer = setTimeout(() => finish(c), AFTER_BALL);
@@ -152,59 +146,45 @@
     live.delete(c);
     if (c.innings !== innings || !c.ball) return;
     c.blob = new Blob(c.chunks, { type: MIME });
-    c.score = worth(c.ball.kind, c.ball.detail);
     c.final = !!summary; // the innings' last ball: the reel's ending
-    if (c.final || c.score >= 4) queue.push(c);
+    if (c.final || keeps(c.ball.detail.runs)) queue.push(c);
     else { spare.push(c); spare = spare.slice(-3); }
     pump();
   }
+  // Sixes always; fours while there is plenty of room; wickets only as the ending
+  // (the last ball). A reel of getting out is not one anybody posts.
+  const keeps = (runs) => runs === 6 || (runs === 4 && (cut ? cut.used : 0) < FOURS_UNTIL);
 
-  // ---- each highlight cut into its own finished segment, while the innings goes on ----
-  // A segment is the clip with its tag, its caption and its line, recorded on our own
-  // canvas. At the end the best are picked from the whole match and the server joins
-  // them without re-encoding, so the reel is ready moments after the last ball.
-  let stage = null; // { canvas, ctx, actx, dest, stream, draw, recording, busy, tick }
-  let segs = [];    // { blob, len, score, n, final }
-  function stager() {
-    if (stage) return stage;
+  // ---- cutting the reel as the innings goes ----
+  // One recorder on our own canvas for the whole reel, paused between highlights.
+  // Nothing is joined afterwards: separate recordings joined by copying came out
+  // glitchy, because each one starts its video stream with its own settings.
+  let cut = null; // { canvas, ctx, actx, dest, rec, chunks, draw, used, busy }
+  function cutter() {
+    if (cut) return cut;
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d");
     const actx = new AC();
     actx.__bulbulNoTap = true;
     const dest = actx.createMediaStreamDestination();
-    const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
-    const s = { canvas, ctx, actx, dest, stream, draw: () => backdrop(ctx), recording: false, busy: false };
+    const out = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    const rec = new MediaRecorder(out, { mimeType: MIME, videoBitsPerSecond: 4_000_000 });
+    const c = { canvas, ctx, actx, dest, rec, chunks: [], draw: () => backdrop(ctx), used: 0, busy: false, innings };
+    rec.ondataavailable = (e) => e.data.size && c.chunks.push(e.data);
     // Frames are drawn on a timer: animation frames stop in a hidden tab.
-    s.tick = setInterval(() => s.recording && s.draw(), 1000 / 30);
-    stage = s;
-    return s;
-  }
-  // Records whatever `body` sets up to draw and play on the stage, for `secs`, as one segment.
-  async function record(s, secs, body) {
-    const rec = new MediaRecorder(s.stream, { mimeType: MIME, videoBitsPerSecond: 4_000_000 });
-    const chunks = [];
-    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-    const done = new Promise((r) => (rec.onstop = r));
-    if (s.actx.state === "suspended") await s.actx.resume().catch(() => {});
-    const t0 = s.actx.currentTime + 0.05;
-    const after = await body(t0);
-    s.draw();
-    s.recording = true;
+    c.tick = setInterval(() => c.rec.state === "recording" && c.draw(), 1000 / 30);
     rec.start(500);
-    await sleep(secs * 1000);
-    s.recording = false;
-    rec.stop();
-    await done;
-    if (after) after();
-    return new Blob(chunks, { type: MIME });
+    rec.pause();
+    cut = c;
+    return c;
   }
   function lineReady(c) {
     const l = lines.get(c.id);
     return !l || l.done || l.skipped || performance.now() - c.decidedAt > LINE_WAIT;
   }
   function plan(c) {
-    // How long this clip runs: its picture, or its whole line, whichever is longer.
+    // How long this clip runs in the reel: its picture, or its whole line, whichever is longer.
     const l = lines.get(c.id);
     const clipLen = (c.stoppedAt - c.startedAt) / 1000;
     let at = 0, dur = 0;
@@ -215,54 +195,49 @@
     }
     return { line: dur ? l : null, at, dur, len: Math.max(clipLen, at + dur + 0.4) };
   }
-  async function cutClip(clip) {
-    const s = stager();
+  async function pump() {
+    const c = cut;
+    if ((c && c.busy) || !queue.length || !lineReady(queue[0])) return;
+    const clip = queue.shift();
     const p = plan(clip);
+    const room = MAX_REEL - OUTRO - (c ? c.used : 0) - (clip.final ? 0 : RESERVE);
+    if (p.len > room) return pump(); // too long for what is left; a shorter one may fit
+    await play(cutter(), clip, p);
+    pump();
+  }
+  async function play(c, clip, p) {
+    c.busy = true;
     const v = document.createElement("video");
     v.playsInline = true; v.preload = "auto";
     v.src = URL.createObjectURL(clip.blob);
-    const src = s.actx.createMediaElementSource(v);
-    const gain = s.actx.createGain();
+    const src = c.actx.createMediaElementSource(v);
+    const gain = c.actx.createGain();
     gain.gain.value = p.line ? 0.45 : 1; // the game's sound sits under the commentary
-    src.connect(gain).connect(s.dest);
+    src.connect(gain).connect(c.dest);
     await new Promise((r) => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 4000); });
-    const blob = await record(s, p.len, async (t0) => {
-      s.draw = () => { backdrop(s.ctx); cover(s.ctx, v); overlay(s.ctx, clip); };
-      if (p.line) {
-        const buf = s.actx.createBuffer(1, p.line.samples, RATE);
-        const ch = buf.getChannelData(0);
-        let o = 0;
-        for (const k of p.line.chunks) { for (let i = 0; i < k.length; i++) ch[o + i] = k[i] / 32768; o += k.length; }
-        const b = s.actx.createBufferSource();
-        b.buffer = buf; b.connect(s.dest); b.start(t0 + p.at);
-      }
-      await v.play().catch(() => {});
-      return () => { v.pause(); URL.revokeObjectURL(v.src); src.disconnect(); };
-    });
-    return { blob, len: p.len, score: clip.score, n: clip.n, final: clip.final };
-  }
-  async function pump() {
-    if ((stage && stage.busy) || !queue.length || !lineReady(queue[0])) return;
-    const clip = queue.shift();
-    if (plan(clip).len > MAX_REEL - OUTRO) return pump(); // a clip longer than the whole reel
-    const s = stager();
-    s.busy = true;
-    const mine = innings;
-    try {
-      const seg = await cutClip(clip);
-      if (mine !== innings) return;
-      segs.push(seg);
-      // Keep the best few; the last ball is never dropped.
-      while (segs.length > KEEP_SEGMENTS) {
-        const drop = segs.filter((x) => !x.final).reduce((lo, x) => (x.score < lo.score || (x.score === lo.score && x.n < lo.n) ? x : lo));
-        segs = segs.filter((x) => x !== drop);
-      }
-    } catch (e) {
-      console.warn("[reel] segment", e);
-    } finally {
-      s.busy = false;
+    if (c.actx.state === "suspended") await c.actx.resume().catch(() => {});
+    c.draw = () => { backdrop(c.ctx); cover(c.ctx, v); overlay(c.ctx, clip); };
+    c.rec.resume();
+    const t0 = c.actx.currentTime;
+    if (p.line) {
+      const buf = c.actx.createBuffer(1, p.line.samples, RATE);
+      const ch = buf.getChannelData(0);
+      let o = 0;
+      for (const k of p.line.chunks) { for (let i = 0; i < k.length; i++) ch[o + i] = k[i] / 32768; o += k.length; }
+      const s = c.actx.createBufferSource();
+      s.buffer = buf;
+      s.connect(c.dest);
+      s.start(t0 + p.at);
     }
-    pump();
+    await v.play().catch(() => {});
+    // The last frame holds while the line finishes.
+    await sleep(p.len * 1000);
+    v.pause();
+    c.rec.pause();
+    c.used += p.len;
+    URL.revokeObjectURL(v.src);
+    src.disconnect();
+    c.busy = false;
   }
 
   // The end card's "ta-ding": a quick rising chime and a bell, made here (no music file).
@@ -283,31 +258,11 @@
     const bell = t0 + 0.36;
     [[1046.5, 0.45], [1568, 0.3], [2093, 0.22], [2637, 0.12]].forEach(([f, a]) => note(f, bell, 1.8, "sine", a));
   }
-  async function cutOutro() {
-    const s = stager();
-    return record(s, OUTRO, async (t0) => {
-      s.draw = () => outroCard(s.ctx);
-      sting(s.actx, s.dest, t0 + 0.15);
-      return null;
-    });
-  }
-  // The reel: the best segments of the whole match that fit in 30 s, the last ball
-  // always among them, in the order they happened, then the end card.
-  function choose() {
-    const room = MAX_REEL - OUTRO;
-    const final = segs.find((x) => x.final);
-    const chosen = final ? [final] : [];
-    let used = final ? final.len : 0;
-    for (const x of segs.filter((x) => x !== final).sort((a, b) => b.score - a.score || b.n - a.n)) {
-      if (used + x.len <= room) { chosen.push(x); used += x.len; }
-    }
-    return chosen.sort((a, b) => a.n - b.n);
-  }
   // Seconds of work left at the end of the innings: the last ball's clip and line,
-  // segments still to cut, the end card and the join.
+  // clips still to cut, and the end card.
   function estimate() {
-    const busy = stage && stage.busy ? 4 : 0;
-    const est = (live.size ? 6 : 0) + queue.length * 6 + busy + OUTRO + 2;
+    const busy = cut && cut.busy ? 4 : 0;
+    const est = (live.size ? 6 : 0) + queue.length * 6 + busy + OUTRO + 1;
     return Math.max(5, Math.min(40, est));
   }
   function tickProgress(r, secs) {
@@ -324,68 +279,13 @@
       renderButton();
     }, 150);
   }
-  // Two joins race: the server's (a lossless copy, a few seconds) and the browser's
-  // own (the finished segments played back to back into one recording, as long as
-  // the reel). Whichever finishes first is the reel; the other is stopped.
-  async function serverJoin(parts, signal) {
-    const type = MIME.split(";")[0];
-    const r = await fetch("/api/reel", {
-      method: "POST", body: new Blob(parts, { type }), signal,
-      headers: { "Content-Type": type, "X-Parts": parts.map((b) => b.size).join(",") },
-    });
-    if (!r.ok) throw new Error(`join ${r.status}`);
-    return r.blob();
-  }
-  async function browserJoin(parts, signal) {
-    const canvas = document.createElement("canvas");
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext("2d");
-    const actx = new AC();
-    actx.__bulbulNoTap = true;
-    const dest = actx.createMediaStreamDestination();
-    const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
-    const rec = new MediaRecorder(stream, { mimeType: MIME, videoBitsPerSecond: 4_000_000 });
-    const chunks = [];
-    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-    const done = new Promise((r) => (rec.onstop = r));
-    let v = null;
-    const tick = setInterval(() => { if (v && v.videoWidth) { backdrop(ctx); cover(ctx, v); } }, 1000 / 30);
-    const stopAll = () => { clearInterval(tick); if (v) v.pause(); if (rec.state !== "inactive") rec.stop(); actx.close().catch(() => {}); };
-    signal.addEventListener("abort", stopAll, { once: true });
-    try {
-      if (actx.state === "suspended") await actx.resume().catch(() => {});
-      rec.start(500);
-      for (const part of parts) {
-        if (signal.aborted) throw new Error("aborted");
-        v = document.createElement("video");
-        v.playsInline = true; v.preload = "auto";
-        v.src = URL.createObjectURL(part);
-        actx.createMediaElementSource(v).connect(dest);
-        await new Promise((r) => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 4000); });
-        await v.play().catch(() => {});
-        await new Promise((r) => { v.onended = r; signal.addEventListener("abort", r, { once: true }); setTimeout(r, 15000); });
-        URL.revokeObjectURL(v.src);
-      }
-      if (signal.aborted) throw new Error("aborted");
-      stopAll();
-      await done;
-      return new Blob(chunks, { type: MIME });
-    } finally {
-      clearInterval(tick);
-    }
-  }
-  async function join(parts) {
-    const stop = new AbortController();
-    const first = (p) => p.then((blob) => { stop.abort(); return blob; });
-    // Promise.any: the first that succeeds; only if both fail does this throw.
-    return Promise.any([first(serverJoin(parts, stop.signal)), first(browserJoin(parts, stop.signal))]);
-  }
 
   function start() {
     innings++;
     posterImage(); // loaded by the time the end card is drawn
     if (waiting) finish(waiting);
-    queue = []; spare = []; segs = []; live.clear(); balls = 0; summary = null; reel = null; lines.clear();
+    if (cut) { clearInterval(cut.tick); try { cut.rec.stop(); } catch (_) {} cut.actx.close(); cut = null; }
+    queue = []; spare = []; live.clear(); balls = 0; summary = null; reel = null; lines.clear();
     renderButton();
   }
   async function end(detail, state) {
@@ -398,44 +298,43 @@
     // The work left is known only roughly, so the percentage climbs steadily to 99
     // over the time it should take, and jumps to ready the moment the reel is done.
     tickProgress(reel, estimate());
-    // The last ball's clip and line, then whatever is still being cut.
+    // The last ball's clip and line, then whatever is still queued.
     const t = performance.now();
     while (performance.now() - t < LINE_WAIT + AFTER_BALL + 15000) {
       if (mine !== innings) return;
-      if (!live.size && !queue.length && !(stage && stage.busy)) break;
+      if (!live.size && !queue.length && !(cut && cut.busy)) break;
       await sleep(250);
       pump();
     }
     if (mine !== innings) return;
     // Nothing big happened: the last couple of balls, so there is still a reel.
-    if (!segs.length) {
+    if (!cut || !cut.used) {
       for (const c of spare.slice(-2)) {
-        try { segs.push(await cutClip(c)); } catch (e) { console.warn("[reel] spare", e); }
+        const p = plan(c);
+        if ((cut ? cut.used : 0) + p.len <= MAX_REEL - OUTRO) await play(cutter(), c, p);
         if (mine !== innings) return;
       }
     }
-    if (!segs.length) { reel = { state: "failed" }; return renderButton(); }
-    const outro = await cutOutro();
-    if (mine !== innings) return;
-    const chosen = choose();
-    let blob;
-    try {
-      blob = await join([...chosen.map((x) => x.blob), outro]);
-    } catch (e) {
-      // Neither join worked: the best single moment is still worth sharing.
-      console.warn("[reel] join", e);
-      blob = [...chosen].sort((a, b) => b.score - a.score)[0].blob;
-    }
+    if (!cut || !cut.used) { reel = { state: "failed" }; return renderButton(); }
+    const c = cut;
+    c.draw = () => outroCard(c.ctx);
+    c.rec.resume();
+    sting(c.actx, c.dest, c.actx.currentTime + 0.15);
+    await sleep(OUTRO * 1000);
+    const done = new Promise((r) => (c.rec.onstop = r));
+    c.rec.stop();
+    await done;
+    clearInterval(c.tick); c.actx.close();
+    cut = null;
     if (mine !== innings) return;
     // Done, often before the bar got near the top: a quick sweep to 100 % first.
     reel.progress = 100;
     renderButton();
     await sleep(450);
     if (mine !== innings) return;
-    const name = `bulbul-flash-${summary.runs}-${summary.wickets}.${(blob.type || MIME).includes("webm") ? "webm" : "mp4"}`;
+    const name = `bulbul-flash-${summary.runs}-${summary.wickets}.${EXT}`;
     // A plain type: Android's share sheet turns down "video/mp4;codecs=...".
-    const type = (blob.type || MIME).split(";")[0];
-    reel = { state: "ready", file: new File([blob], name, { type }) };
+    reel = { state: "ready", file: new File([new Blob(c.chunks, { type: MIME })], name, { type: MIME.split(";")[0] }) };
     renderButton();
   }
 
@@ -677,6 +576,6 @@
 
   window.bulbulReel = {
     runup, ball, line, pcm, heard, lineEnd, skip, start, end,
-    debug: () => ({ queue, spare, segs: segs.map((x) => ({ n: x.n, score: x.score, len: x.len, final: x.final, kb: Math.round(x.blob.size / 1024) })), busy: !!(stage && stage.busy), reel, summary, MIME, lines: lines.size }),
+    debug: () => ({ queue, spare, used: cut ? cut.used : 0, busy: !!(cut && cut.busy), reel, summary, MIME, lines: lines.size }),
   };
 })();
