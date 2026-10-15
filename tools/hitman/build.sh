@@ -25,7 +25,7 @@ HITMAN_OUT="$out" VITE_BOARD_API=https://board.invalid npx vite build --config v
 
 # Public files nothing in the game references (about 10 MB).
 cd "$out"
-rm -f ./*.png leaderboard_cover.webp rivals_cover.webp
+rm -f ./*.png leaderboard_cover.webp rivals_cover.webp play-qr.svg
 cp "$here/CREDITS.txt" CREDITS.txt
 # The upstream name filter carries offensive word lists; this repo keeps none.
 python "$here/strip_wordlists.py" "$out"

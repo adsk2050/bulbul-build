@@ -1,7 +1,7 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 07:47:48.263796000 +0530
-+++ b/index.html	2026-10-15 07:47:48.289957700 +0530
-@@ -1,27 +1,29 @@
+--- a/index.html	2026-10-15 08:19:01.847325900 +0530
++++ b/index.html	2026-10-15 08:19:01.875257300 +0530
+@@ -1,27 +1,30 @@
 -<!doctype html>
 -<html lang="en">
 -  <head>
@@ -45,12 +45,13 @@ diff -ruN a/index.html b/index.html
 +  <body>
 +    <div id="app"></div>
 +    <!-- Beside the game on a desktop, where there is room (see .desk-note in styles.css). -->
-+    <aside class="desk-note" aria-label="Play on your phone">
-+      <h2>Made for your phone</h2>
-+      <p>Hitman Cricket is built to be swiped. Scan to bat on your phone.</p>
-+      <div class="desk-qr"><img src="play-qr.svg" alt="QR code for hitmancricket.in" width="148" height="148" /><span>hitmancricket.in</span></div>
-+      <p class="bb-credit">Game: <a href="https://github.com/ekcuttingchaidesign/Hitman-Cricket" target="_blank" rel="noopener">Hitman Cricket</a> by ekcuttingchaidesign. Live commentary: Gully Bhaiya on Sarvam Bulbul.</p>
-+      <p>Or bat here on the keyboard:</p>
++    <!-- Bulbul build: features that need the game's own server, or stand between the player and the innings. -->
++    <style>#cover-profile,#feedback-open,#feedback-pause,#feedback-card,#challenge-set,#card-key,.ec-player{display:none!important}</style>
++    <aside class="desk-note" aria-label="About this page">
++      <h2>Gully Bhaiya on the mic</h2>
++      <p>Every ball gets a live Hinglish line, spoken by Sarvam Bulbul. He remembers your past matches and coaches you from them.</p>
++      <p class="bb-credit">Game: <a href="https://github.com/ekcuttingchaidesign/Hitman-Cricket" target="_blank" rel="noopener">Hitman Cricket</a> by ekcuttingchaidesign.</p>
++      <p>Bat on the keyboard, or swipe on a phone:</p>
 +      <div class="desk-keys"><span class="desk-keyset"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></span><span>or</span><span class="desk-keyset"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div>
 +    </aside>
 +    <script type="module" src="/src/main.ts"></script>
@@ -59,8 +60,8 @@ diff -ruN a/index.html b/index.html
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 07:47:48.406498500 +0530
-+++ b/src/Game.ts	2026-10-15 07:47:48.434086800 +0530
+--- a/src/Game.ts	2026-10-15 08:19:01.989069400 +0530
++++ b/src/Game.ts	2026-10-15 08:19:02.015983400 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
@@ -78,7 +79,16 @@ diff -ruN a/src/Game.ts b/src/Game.ts
  import { advanceShot, gradeOf, loftedDrive, playedAs, scoopLine, scoopShot, scoopable, slogSweep, sweeps, chargeable, sweepable, resolveShot } from './game/ShotResolver';
  import { TUTORIAL, tutorialDelivery, tutorialOutcome } from './game/Tutorial';
  import type { Delivery, Ending, GamePhase, ShotAttempt, ShotOutcome, ShotType } from './game/types';
-@@ -578,7 +579,7 @@
+@@ -65,6 +66,8 @@
+ import type { StatsSheetView, StatsSlide } from './ui/StatsSheet';
+ import type { BatterKit } from './entities/Batter';
+ import { markWhatsNewShown, whatsNewDue } from './game/whats-new';
++/** The Bulbul Build Challenge cut: no board, no prompts between the player and the innings. */
++const BULBUL_BUILD: boolean = true;
+ import type { StoriesWhere } from './ui/WhatsNew';
+ import { climbedTo, standingOf, tierMeasure, TIERS, type Granted } from './game/tier';
+ import { LevelUp } from './ui/LevelUp';
+@@ -578,7 +581,7 @@
        () => this.charged,
        // A left-hander's swipes and side keys, read the way his mirrored
        // screen shows them. Asked of the scene, so the two cannot disagree.
@@ -87,7 +97,25 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // The play key opens the picker rather than an innings — unless a link has
      // already named the mode, in which case it is that mode's play key.
      this.hud.on('start', this.play);
-@@ -1746,7 +1747,18 @@
+@@ -770,13 +773,15 @@
+     // A bundle built survive-only plays one innings and offers no way out of
+     // it — that is the whole of what makes it publishable somewhere with no
+     // board behind it. A `?mode=` link does the same thing at runtime.
+-    const named = SURVIVE_ONLY ? 'SURVIVE' : new URLSearchParams(location.search).get('mode')?.toUpperCase();
++    // Bulbul build: The Blast is the only mode wired to the commentary, so Play
++    // goes straight to it, and the board's keys go (there is no board).
++    const named = SURVIVE_ONLY ? 'SURVIVE' : new URLSearchParams(location.search).get('mode')?.toUpperCase() ?? 'CLASSIC';
+     // Off production the Marathon has a card on the picker; on it, until it
+     // ships, it is this link and nothing else. See `docs/MARATHON.md`.
+     if (named === 'SURVIVE' || named === 'CLASSIC' || named === 'MARATHON') {
+       this.mode = named as GameMode;
+       this.locked = true;
+-      this.hud.lockMode(SURVIVE_ONLY);
++      this.hud.lockMode(true);
+     } else {
+       // The picker opens whenever there is something to pick. Challenging a
+       // friend is always on offer, so from here that is always — where before,
+@@ -1746,7 +1751,18 @@
      this.setPhase('READY');
      (document.activeElement as HTMLElement | null)?.blur();
      if (this.marathoning) this.introduce(); else this.teachShots();
@@ -106,7 +134,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    /**
     * The Marathon's rules, the first two times one starts: the bowler waits at
     * his mark until the last card is put away, the way he waits for a banner.
-@@ -2056,6 +2068,19 @@
+@@ -2056,6 +2072,19 @@
      this.hud.levelBanner(banner, over + 1, LEVEL_BANNER_MS);
      this.bannerUntil = this.elapsed + LEVEL_BANNER_MS;
    }
@@ -126,7 +154,26 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    private shoot = (shot: ShotType, inputTimeMs: number) => {
      if (this.phase !== 'BALL_IN_FLIGHT' || this.attempt) return;
      // The first swing of the session, tutorial or not: a player who never plays
-@@ -3120,6 +3145,7 @@
+@@ -2241,7 +2270,8 @@
+    */
+   private play = () => {
+     const go = () => (this.locked ? this.walkOut() : this.modes());
+-    if (!whatsNewDue()) return go();
++    // Bulbul build: no What's New stories between Play and the innings.
++    if (BULBUL_BUILD || !whatsNewDue()) return go();
+     markWhatsNewShown();
+     this.showStories('intro', go);
+   };
+@@ -2308,6 +2338,8 @@
+    * of the count as it is left out of the career, and a demo room is nobody's.
+    */
+   private rateThisInnings() {
++    // Bulbul build: the star prompt covered the end card and the last line.
++    if (BULBUL_BUILD) return;
+     if (this.practising || this.demoing) return;
+     const mode: RatedMode = this.challenge.playing ? 'rivals' : this.careerMode;
+     const memory = counted(readMemory(), mode);
+@@ -3120,6 +3152,7 @@
    }
    private resolve() {
      const step = this.lesson >= 0 ? TUTORIAL[this.lesson] : null;
@@ -134,7 +181,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      this.outcome = step ? tutorialOutcome(step, this.delivery!, this.attempt)
        : this.marathon ? this.marathonBall()
        : this.surviving ? resolveSurvive(this.delivery!, this.attempt, this.rng, easedSkill(TAILENDER, this.ease))
-@@ -3179,6 +3205,20 @@
+@@ -3179,6 +3212,20 @@
      this.resultPresented = false; this.contactPlayed = false;
      this.setPhase('SHOT_RESOLVE');
      if (this.outcome.aerial) this.hud.airborne();
@@ -155,7 +202,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    }
    /**
     * The wait, moved on by the ball just played. With the score, not after
-@@ -3977,6 +4017,11 @@
+@@ -3977,6 +4024,11 @@
  
    private end() {
      this.setPhase('INNINGS_END');
@@ -168,8 +215,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 07:47:48.545403300 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 07:47:48.580139700 +0530
+--- a/src/game/InputManager.ts	2026-10-15 08:19:02.119656100 +0530
++++ b/src/game/InputManager.ts	2026-10-15 08:19:02.143901700 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -237,8 +284,8 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
    }
    flush(time: number) {
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts	2026-10-15 07:47:48.700244600 +0530
-+++ b/src/main.ts	2026-10-15 07:47:48.725702600 +0530
+--- a/src/main.ts	2026-10-15 08:19:02.252502900 +0530
++++ b/src/main.ts	2026-10-15 08:19:02.280410000 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -251,8 +298,8 @@ diff -ruN a/src/main.ts b/src/main.ts
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
 diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
---- a/src/scene/GameScene.ts	2026-10-15 07:47:48.832286300 +0530
-+++ b/src/scene/GameScene.ts	2026-10-15 07:47:48.863555300 +0530
+--- a/src/scene/GameScene.ts	2026-10-15 08:19:02.392080000 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 08:19:02.424072300 +0530
 @@ -996,6 +996,8 @@
    private static meetsAt(charging: boolean) {
      return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
