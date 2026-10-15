@@ -101,15 +101,19 @@
   connect();
 
   function onMsg(m) {
+    const reel = window.bulbulReel;
     if (m.type === "line") {
+      reel && reel.line(m.id, m.text);
       answeredId = Math.max(answeredId, m.id);
       stopAll(); // a new line takes the mic
       playingId = m.id;
       showLine(m.text);
     } else if (m.type === "skip") {
+      reel && reel.lineEnd(m.id);
       answeredId = Math.max(answeredId, m.id);
       if (m.id === playingId) stopAll();
     } else if (m.type === "line_end") {
+      reel && reel.lineEnd(m.id);
       const t = sent.get(m.id);
       const first = firstAudioAt.get(m.id);
       const total = t && first ? Math.round(first - t) : null;
@@ -208,6 +212,7 @@
   // ---- sending ----
   function send(kind, detail, state) {
     const id = nextId++;
+    if (["hit", "miss", "wicket"].includes(kind) && window.bulbulReel) window.bulbulReel.ball(id, kind, detail, state);
     sent.set(id, performance.now());
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: "event", id, game: "hitman", kind, detail, state, player: player() }));
@@ -265,14 +270,17 @@
     event(kind, detail, state) {
       detail = detail || {};
       state = state || {};
+      // The run-up is for the highlight reel only; Bhaiya says nothing for it.
+      if (kind === "runup") return window.bulbulReel && window.bulbulReel.runup();
       if (kind === "start") {
+        window.bulbulReel && window.bulbulReel.start();
         for (const k of ["balls", "swings", "early", "late", "onTime", "sumTiming", "timed", "offLine", "leftAlone", "sixes", "fours", "dots"]) h[k] = 0;
         h.shots = {}; h.outs = {}; h.vs = {}; h.recent = [];
         held = null;
         return send(kind, { ...detail, history: pastMatches() }, state);
       }
       learn(kind, detail);
-      if (kind === "end") keepMatch(detail);
+      if (kind === "end") { keepMatch(detail); window.bulbulReel && window.bulbulReel.end(detail, state); }
       if (kind === "over" || kind === "end") {
         held = { kind, detail, state, until: performance.now() + (kind === "end" ? 4000 : 6000) };
         return;

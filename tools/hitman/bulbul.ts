@@ -133,3 +133,5 @@ export function ballPlayed(d: Delivery, attempt: ShotAttempt | null, o: ShotOutc
 export function inningsStarted(detail: Record<string, unknown>, state: Record<string, unknown>) { lastInput = null; emit('start', detail, state); }
 export function overDone(detail: Record<string, unknown>, state: Record<string, unknown>) { emit('over', detail, state); }
 export function inningsEnded(detail: Record<string, unknown>, state: Record<string, unknown>) { emit('end', detail, state); }
+/** The bowler has started his run-up: the highlight reel starts a clip here. */
+export function ballComing() { emit('runup', {}, {}); }

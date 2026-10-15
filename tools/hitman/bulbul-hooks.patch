@@ -1,7 +1,7 @@
 diff -ruN a/index.html b/index.html
---- a/index.html	2026-10-15 08:19:01.847325900 +0530
-+++ b/index.html	2026-10-15 08:19:01.875257300 +0530
-@@ -1,27 +1,30 @@
+--- a/index.html	2026-10-15 08:35:19.642092600 +0530
++++ b/index.html	2026-10-15 08:35:19.667305600 +0530
+@@ -1,27 +1,32 @@
 -<!doctype html>
 -<html lang="en">
 -  <head>
@@ -57,16 +57,18 @@ diff -ruN a/index.html b/index.html
 +    <script type="module" src="/src/main.ts"></script>
 +    <!-- bulbul-build: Gully Bhaiya live commentary (Sarvam Bulbul). The game is Hitman Cricket by ekcuttingchaidesign. -->
 +    <script src="/static/hitman-voice.js"></script>
++    <!-- bulbul-build: the highlight reel and its Share button (records in the browser). -->
++    <script src="/static/hitman-reel.js"></script>
 +  </body>
 +</html>
 diff -ruN a/src/Game.ts b/src/Game.ts
---- a/src/Game.ts	2026-10-15 08:19:01.989069400 +0530
-+++ b/src/Game.ts	2026-10-15 08:19:02.015983400 +0530
+--- a/src/Game.ts	2026-10-15 08:35:19.775366400 +0530
++++ b/src/Game.ts	2026-10-15 08:35:19.811132900 +0530
 @@ -10,6 +10,7 @@
  import { marathonOffer, type MarathonLadder } from './ui/MarathonBoard';
  import { shownKph } from './game/speed-gun';
  import { Confidence, landedSpecial, pulledBouncer } from './game/Confidence';
-+import { ballPlayed as bulbulBall, inningsEnded as bulbulEnd, inningsStarted as bulbulStart, overDone as bulbulOver } from './game/bulbul';
++import { ballComing as bulbulRunup, ballPlayed as bulbulBall, inningsEnded as bulbulEnd, inningsStarted as bulbulStart, overDone as bulbulOver } from './game/bulbul';
  import { Health } from './game/Health';
  import { TAILENDER, endingOf, resolveSurvive, resultOf, sledgeDue, teamScore } from './game/Survive';
  import { EASE, easeFor, easedSkill, easedWindows, notePlayed, playedIn, seedPlayed } from './game/newcomer';
@@ -173,7 +175,15 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      if (this.practising || this.demoing) return;
      const mode: RatedMode = this.challenge.playing ? 'rivals' : this.careerMode;
      const memory = counted(readMemory(), mode);
-@@ -3120,6 +3152,7 @@
+@@ -3071,6 +3103,7 @@
+       this.scene.express(!!this.delivery.express);
+       this.scene.round(!!this.delivery.round);
+       this.showConfidence(); this.setPhase('BOWLER_RUNUP');
++      if (this.lesson < 0) bulbulRunup();
+       // The stands lift as he runs in, and settle once the ball has gone.
+       this.audio.swellCrowd(1 + RUNUP.swell, GAME.runupMs / 1000, RUNUP.settle, 0, GAME.runupMs / 3000);
+     } else if (this.phase === 'BOWLER_RUNUP') {
+@@ -3120,6 +3153,7 @@
    }
    private resolve() {
      const step = this.lesson >= 0 ? TUTORIAL[this.lesson] : null;
@@ -181,7 +191,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      this.outcome = step ? tutorialOutcome(step, this.delivery!, this.attempt)
        : this.marathon ? this.marathonBall()
        : this.surviving ? resolveSurvive(this.delivery!, this.attempt, this.rng, easedSkill(TAILENDER, this.ease))
-@@ -3179,6 +3212,20 @@
+@@ -3179,6 +3213,20 @@
      this.resultPresented = false; this.contactPlayed = false;
      this.setPhase('SHOT_RESOLVE');
      if (this.outcome.aerial) this.hud.airborne();
@@ -202,7 +212,7 @@ diff -ruN a/src/Game.ts b/src/Game.ts
    }
    /**
     * The wait, moved on by the ball just played. With the score, not after
-@@ -3977,6 +4024,11 @@
+@@ -3977,6 +4025,11 @@
  
    private end() {
      this.setPhase('INNINGS_END');
@@ -215,8 +225,8 @@ diff -ruN a/src/Game.ts b/src/Game.ts
      // Toward the end of a newcomer's help, by the same rule as the career: only
      // an innings finished counts, so walking out on one does not keep it going.
 diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
---- a/src/game/InputManager.ts	2026-10-15 08:19:02.119656100 +0530
-+++ b/src/game/InputManager.ts	2026-10-15 08:19:02.143901700 +0530
+--- a/src/game/InputManager.ts	2026-10-15 08:35:19.917597200 +0530
++++ b/src/game/InputManager.ts	2026-10-15 08:35:19.949651300 +0530
 @@ -1,5 +1,6 @@
  import { GAME, SCOOP } from '../config/gameplay';
  import type { ShotType } from './types';
@@ -284,8 +294,8 @@ diff -ruN a/src/game/InputManager.ts b/src/game/InputManager.ts
    }
    flush(time: number) {
 diff -ruN a/src/main.ts b/src/main.ts
---- a/src/main.ts	2026-10-15 08:19:02.252502900 +0530
-+++ b/src/main.ts	2026-10-15 08:19:02.280410000 +0530
+--- a/src/main.ts	2026-10-15 08:35:20.053612300 +0530
++++ b/src/main.ts	2026-10-15 08:35:20.080399800 +0530
 @@ -64,7 +64,9 @@
    const { Game } = await import('./Game');
    // A forgetful window can still bat; what it cannot do is take a place on the
@@ -298,8 +308,8 @@ diff -ruN a/src/main.ts b/src/main.ts
  })();
  // A back/forward-cache restore must not reuse a disposed WebGL renderer.
 diff -ruN a/src/scene/GameScene.ts b/src/scene/GameScene.ts
---- a/src/scene/GameScene.ts	2026-10-15 08:19:02.392080000 +0530
-+++ b/src/scene/GameScene.ts	2026-10-15 08:19:02.424072300 +0530
+--- a/src/scene/GameScene.ts	2026-10-15 08:35:20.190722700 +0530
++++ b/src/scene/GameScene.ts	2026-10-15 08:35:20.215478700 +0530
 @@ -996,6 +996,8 @@
    private static meetsAt(charging: boolean) {
      return charging ? 1 - CHARGE_MEETS_AT / (GAME.releaseZ - GAME.contactZ) : 1;
